@@ -2,6 +2,12 @@ using UnityEngine;
 
 public class TopDownMapGenerator : MonoBehaviour
 {
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void CreateAtRuntime()
+    {
+        GameObject mapGeneratorObject = new GameObject("TopDownMapGenerator");
+        mapGeneratorObject.AddComponent<TopDownMapGenerator>();
+    }
     [Header("Arena Size")]
     [SerializeField] private float width = 30f;
     [SerializeField] private float height = 20f;
