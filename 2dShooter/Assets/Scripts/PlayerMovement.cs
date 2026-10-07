@@ -5,13 +5,13 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerMovement : MonoBehaviour
 {
-    [InspectorLabel("Максимальная скорость")]
+    [InspectorLabel("Максимальная скорость", "Максимальная скорость, с которой игрок может двигаться.")]
     [SerializeField] private float maxSpeed = 5f;
 
-    [InspectorLabel("Ускорение")]
+    [InspectorLabel("Ускорение", "Скорость, с которой игрок набирает максимальную скорость.")]
     [SerializeField] private float acceleration = 30f;
 
-    [InspectorLabel("Замедление")]
+    [InspectorLabel("Замедление", "Скорость, с которой игрок останавливается после отпускания клавиш движения.")]
     [SerializeField] private float deceleration = 40f;
 
     private Rigidbody2D rb;
