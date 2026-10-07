@@ -1,11 +1,17 @@
+using InspectorLocalization;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerMovement : MonoBehaviour
 {
+    [InspectorLabel("Максимальная скорость")]
     [SerializeField] private float maxSpeed = 5f;
+
+    [InspectorLabel("Ускорение")]
     [SerializeField] private float acceleration = 30f;
+
+    [InspectorLabel("Замедление")]
     [SerializeField] private float deceleration = 40f;
 
     private Rigidbody2D rb;
