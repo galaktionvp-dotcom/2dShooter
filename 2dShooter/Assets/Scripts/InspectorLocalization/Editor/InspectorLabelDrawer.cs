@@ -15,7 +15,7 @@ namespace InspectorLocalization.Editor
             var localizedAttribute = (InspectorLabelAttribute)attribute;
             var localizedLabel = new GUIContent(
                 localizedAttribute.Label,
-                label.tooltip);
+                localizedAttribute.Tooltip ?? string.Empty);
 
             EditorGUI.PropertyField(position, property, localizedLabel, true);
         }
