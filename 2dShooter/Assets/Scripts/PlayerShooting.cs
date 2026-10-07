@@ -6,29 +6,29 @@ using UnityEngine.InputSystem;
 public class PlayerShooting : MonoBehaviour
 {
     [Header("Оружие")]
-    [InspectorLabel("Скорострельность")]
+    [InspectorLabel("Скорострельность", "Количество выстрелов в секунду.")]
     [SerializeField] private float fireRate = 8f;
 
-    [InspectorLabel("Скорость пули")]
+    [InspectorLabel("Скорость пули", "Скорость полёта пули.")]
     [SerializeField] private float bulletSpeed = 18f;
 
-    [InspectorLabel("Время жизни пули")]
+    [InspectorLabel("Время жизни пули", "Сколько секунд пуля существует после создания.")]
     [SerializeField] private float bulletLifetime = 1.5f;
 
-    [InspectorLabel("Размер магазина")]
+    [InspectorLabel("Размер магазина", "Количество патронов в одном магазине.")]
     [SerializeField] private int magazineSize = 12;
 
-    [InspectorLabel("Время перезарядки")]
+    [InspectorLabel("Время перезарядки", "Время, необходимое для полной перезарядки.")]
     [SerializeField] private float reloadTime = 1.1f;
 
-    [InspectorLabel("Разброс")]
+    [InspectorLabel("Разброс", "Максимальный угол отклонения пули от направления прицеливания.")]
     [SerializeField] private float spreadAngle = 2.5f;
 
     [Header("Обратная связь")]
-    [InspectorLabel("Дистанция отдачи")]
+    [InspectorLabel("Дистанция отдачи", "Расстояние, на которое игрок отталкивается назад после выстрела.")]
     [SerializeField] private float recoilDistance = 0.08f;
 
-    [InspectorLabel("Длительность вспышки")]
+    [InspectorLabel("Длительность вспышки", "Сколько секунд отображается вспышка при выстреле.")]
     [SerializeField] private float muzzleFlashDuration = 0.04f;
 
     private Camera mainCamera;
