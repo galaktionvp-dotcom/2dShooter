@@ -1,19 +1,34 @@
+using InspectorLocalization;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerShooting : MonoBehaviour
 {
-    [Header("Weapon")]
+    [Header("Оружие")]
+    [InspectorLabel("Скорострельность")]
     [SerializeField] private float fireRate = 8f;
+
+    [InspectorLabel("Скорость пули")]
     [SerializeField] private float bulletSpeed = 18f;
+
+    [InspectorLabel("Время жизни пули")]
     [SerializeField] private float bulletLifetime = 1.5f;
+
+    [InspectorLabel("Размер магазина")]
     [SerializeField] private int magazineSize = 12;
+
+    [InspectorLabel("Время перезарядки")]
     [SerializeField] private float reloadTime = 1.1f;
+
+    [InspectorLabel("Разброс")]
     [SerializeField] private float spreadAngle = 2.5f;
 
-    [Header("Feedback")]
+    [Header("Обратная связь")]
+    [InspectorLabel("Дистанция отдачи")]
     [SerializeField] private float recoilDistance = 0.08f;
+
+    [InspectorLabel("Длительность вспышки")]
     [SerializeField] private float muzzleFlashDuration = 0.04f;
 
     private Camera mainCamera;
