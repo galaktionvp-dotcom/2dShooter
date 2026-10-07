@@ -14,6 +14,9 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        if (GetComponent<PlayerShooting>() == null)
+            gameObject.AddComponent<PlayerShooting>();
     }
 
     private void Update()
