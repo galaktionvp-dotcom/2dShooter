@@ -13,7 +13,7 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField, Min(0.1f)] private float bulletSpeed = 18f;
 
     [InspectorLabel("Урон пули", "Количество здоровья, которое отнимает одно попадание.")]
-    [SerializeField, Min(0f)] private float bulletDamage = 25f;
+    [SerializeField, Min(0f)] private float bulletDamage = 1f;
 
     [InspectorLabel("Время жизни пули", "Сколько секунд пуля существует после создания.")]
     [SerializeField, Min(0.01f)] private float bulletLifetime = 1.5f;
