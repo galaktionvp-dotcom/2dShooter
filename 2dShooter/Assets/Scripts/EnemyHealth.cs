@@ -7,7 +7,7 @@ public class EnemyHealth : MonoBehaviour
 {
     [Header("Здоровье")]
     [InspectorLabel("Максимальное здоровье", "Общее количество здоровья врага в начале игры.")]
-    [SerializeField, Min(1f)] private float maxHealth = 100f;
+    [SerializeField, Min(1f)] private float maxHealth = 3f;
 
     [Header("Реакция на попадание")]
     [InspectorLabel("Сила отбрасывания", "Насколько сильно враг отталкивается от точки попадания. Работает с динамическим Rigidbody2D.")]
