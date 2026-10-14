@@ -7,42 +7,53 @@ public class PlayerShooting : MonoBehaviour
 {
     [Header("Оружие")]
     [InspectorLabel("Скорострельность", "Количество выстрелов в секунду.")]
-    [SerializeField] private float fireRate = 8f;
+    [SerializeField, Min(0.1f)] private float fireRate = 8f;
 
-    [InspectorLabel("Скорость пули", "Скорость полёта пули.")]
-    [SerializeField] private float bulletSpeed = 18f;
+    [InspectorLabel("Скорость пули", "Скорость полёта пули в единицах Unity в секунду.")]
+    [SerializeField, Min(0.1f)] private float bulletSpeed = 18f;
+
+    [InspectorLabel("Урон пули", "Количество здоровья, которое отнимает одно попадание.")]
+    [SerializeField, Min(0f)] private float bulletDamage = 25f;
 
     [InspectorLabel("Время жизни пули", "Сколько секунд пуля существует после создания.")]
-    [SerializeField] private float bulletLifetime = 1.5f;
+    [SerializeField, Min(0.01f)] private float bulletLifetime = 1.5f;
 
     [InspectorLabel("Размер магазина", "Количество патронов в одном магазине.")]
-    [SerializeField] private int magazineSize = 12;
+    [SerializeField, Min(1)] private int magazineSize = 12;
 
-    [InspectorLabel("Время перезарядки", "Время, необходимое для полной перезарядки.")]
-    [SerializeField] private float reloadTime = 1.1f;
+    [InspectorLabel("Время перезарядки", "Время, необходимое для полной перезарядки, в секундах.")]
+    [SerializeField, Min(0f)] private float reloadTime = 1.1f;
 
-    [InspectorLabel("Разброс", "Максимальный угол отклонения пули от направления прицеливания.")]
-    [SerializeField] private float spreadAngle = 2.5f;
+    [InspectorLabel("Разброс", "Максимальный угол отклонения пули от направления прицеливания, в градусах.")]
+    [SerializeField, Min(0f)] private float spreadAngle = 2.5f;
 
     [Header("Обратная связь")]
     [InspectorLabel("Дистанция отдачи", "Расстояние, на которое игрок отталкивается назад после выстрела.")]
-    [SerializeField] private float recoilDistance = 0.08f;
+    [SerializeField, Min(0f)] private float recoilDistance = 0.08f;
 
     [InspectorLabel("Длительность вспышки", "Сколько секунд отображается вспышка при выстреле.")]
-    [SerializeField] private float muzzleFlashDuration = 0.04f;
+    [SerializeField, Min(0f)] private float muzzleFlashDuration = 0.04f;
 
+    private static Sprite whiteSprite;
     private Camera mainCamera;
     private float nextShotTime;
     private int ammo;
     private bool reloading;
     private float reloadFinishTime;
-    private Vector3 originalScale;
 
     private void Awake()
     {
+        fireRate = Mathf.Max(0.1f, fireRate);
+        bulletSpeed = Mathf.Max(0.1f, bulletSpeed);
+        bulletLifetime = Mathf.Max(0.01f, bulletLifetime);
+        magazineSize = Mathf.Max(1, magazineSize);
+        reloadTime = Mathf.Max(0f, reloadTime);
+        spreadAngle = Mathf.Max(0f, spreadAngle);
+        bulletDamage = Mathf.Max(0f, bulletDamage);
+
         ammo = magazineSize;
-        originalScale = transform.localScale;
         mainCamera = Camera.main;
+        EnsureWhiteSprite();
     }
 
     private void Update()
@@ -99,14 +110,14 @@ public class PlayerShooting : MonoBehaviour
         if (Time.time < nextShotTime || ammo <= 0)
             return;
 
-        nextShotTime = Time.time + 1f / fireRate;
+        nextShotTime = Time.time + 1f / Mathf.Max(0.1f, fireRate);
         ammo--;
 
         float spread = Random.Range(-spreadAngle, spreadAngle);
         Vector2 direction = Quaternion.Euler(0f, 0f, spread) * transform.right;
 
         SpawnBullet(direction);
-        ApplyRecoil();
+        ApplyRecoil(direction);
         ShowMuzzleFlash(direction);
     }
 
@@ -114,39 +125,43 @@ public class PlayerShooting : MonoBehaviour
     {
         GameObject bulletObject = new GameObject("Bullet");
         bulletObject.transform.position = transform.position + (Vector3)(direction * 0.55f);
+        bulletObject.transform.right = direction;
 
         SpriteRenderer renderer = bulletObject.AddComponent<SpriteRenderer>();
-        renderer.sprite = CreateWhiteSprite();
+        renderer.sprite = GetWhiteSprite();
         renderer.color = new Color(1f, 0.85f, 0.2f);
         bulletObject.transform.localScale = new Vector3(0.16f, 0.06f, 1f);
-        bulletObject.transform.right = direction;
 
         Rigidbody2D bulletRb = bulletObject.AddComponent<Rigidbody2D>();
         bulletRb.gravityScale = 0f;
+        bulletRb.bodyType = RigidbodyType2D.Dynamic;
         bulletRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         bulletRb.linearVelocity = direction * bulletSpeed;
 
-        CircleCollider2D collider = bulletObject.AddComponent<CircleCollider2D>();
-        collider.isTrigger = true;
-        collider.radius = 0.5f;
+        CircleCollider2D bulletCollider = bulletObject.AddComponent<CircleCollider2D>();
+        bulletCollider.isTrigger = true;
+        bulletCollider.radius = 0.5f;
 
         Bullet bullet = bulletObject.AddComponent<Bullet>();
-        bullet.Initialize(bulletLifetime);
+        bullet.Initialize(bulletLifetime, bulletDamage, transform);
     }
 
-    private void ApplyRecoil()
+    private void ApplyRecoil(Vector2 direction)
     {
-        transform.position -= transform.right * recoilDistance;
+        transform.position -= (Vector3)(direction * recoilDistance);
     }
 
     private void ShowMuzzleFlash(Vector2 direction)
     {
+        if (muzzleFlashDuration <= 0f)
+            return;
+
         GameObject flash = new GameObject("MuzzleFlash");
         flash.transform.position = transform.position + (Vector3)(direction * 0.65f);
         flash.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
 
         SpriteRenderer renderer = flash.AddComponent<SpriteRenderer>();
-        renderer.sprite = CreateWhiteSprite();
+        renderer.sprite = GetWhiteSprite();
         renderer.color = new Color(1f, 0.65f, 0.15f, 0.9f);
         flash.transform.localScale = new Vector3(0.35f, 0.14f, 1f);
 
@@ -162,18 +177,30 @@ public class PlayerShooting : MonoBehaviour
         reloadFinishTime = Time.time + reloadTime;
     }
 
-    private Sprite CreateWhiteSprite()
+    private static Sprite GetWhiteSprite()
     {
-        Texture2D texture = new Texture2D(1, 1);
+        EnsureWhiteSprite();
+        return whiteSprite;
+    }
+
+    private static void EnsureWhiteSprite()
+    {
+        if (whiteSprite != null)
+            return;
+
+        Texture2D texture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
         texture.name = "GeneratedWhiteTexture";
         texture.SetPixel(0, 0, Color.white);
         texture.Apply();
+        texture.hideFlags = HideFlags.HideAndDontSave;
 
-        return Sprite.Create(
+        whiteSprite = Sprite.Create(
             texture,
             new Rect(0f, 0f, 1f, 1f),
             new Vector2(0.5f, 0.5f),
             1f
         );
+        whiteSprite.name = "GeneratedWhiteSprite";
+        whiteSprite.hideFlags = HideFlags.HideAndDontSave;
     }
 }
