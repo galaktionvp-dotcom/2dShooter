@@ -18,7 +18,6 @@ public class Bullet : MonoBehaviour
     private void Update()
     {
         lifetime -= Time.deltaTime;
-
         if (lifetime <= 0f)
             Destroy(gameObject);
     }
@@ -28,31 +27,44 @@ public class Bullet : MonoBehaviour
         if (hasHit || other == null)
             return;
 
-        // Не даём пуле попадать в самого стрелка или его дочерние коллайдеры.
+        // Не даём снаряду попадать в стрелка или его дочерние коллайдеры.
         if (ownerRoot != null &&
             (other.transform == ownerRoot || other.transform.IsChildOf(ownerRoot)))
         {
             return;
         }
 
-        // Пули не должны уничтожать друг друга.
+        // Снаряды не должны повреждать друг друга.
         if (other.GetComponentInParent<Bullet>() != null)
             return;
 
-        hasHit = true;
-
         EnemyHealth enemy = other.GetComponentInParent<EnemyHealth>();
-        if (enemy != null && !enemy.IsDead)
-        {
-            Rigidbody2D bulletBody = GetComponent<Rigidbody2D>();
-            Vector2 hitDirection = bulletBody != null && bulletBody.linearVelocity.sqrMagnitude > 0.001f
-                ? bulletBody.linearVelocity.normalized
-                : (Vector2)transform.right;
+        PlayerHealth player = other.GetComponentInParent<PlayerHealth>();
 
-            enemy.TakeDamage(damage, transform.position, hitDirection);
+        if ((enemy == null || enemy.IsDead) && (player == null || player.IsDead))
+        {
+            // Попадание в стену или препятствие поглощает снаряд.
+            hasHit = true;
+            Destroy(gameObject);
+            return;
         }
 
-        // Попадание во врага, стену или препятствие поглощает пулю.
+        hasHit = true;
+
+        Rigidbody2D bulletBody = GetComponent<Rigidbody2D>();
+        Vector2 hitDirection = bulletBody != null && bulletBody.linearVelocity.sqrMagnitude > 0.001f
+            ? bulletBody.linearVelocity.normalized
+            : (Vector2)transform.right;
+
+        if (enemy != null && !enemy.IsDead)
+        {
+            enemy.TakeDamage(damage, transform.position, hitDirection);
+        }
+        else if (player != null && !player.IsDead)
+        {
+            player.TakeDamage(damage, transform.position, hitDirection);
+        }
+
         Destroy(gameObject);
     }
 }
