@@ -421,6 +421,7 @@ GameObject:
   - component: {fileID: 1211643799}
   - component: {fileID: 1211643800}
   - component: {fileID: 1211643801}
+  - component: {fileID: 1211643802}
   m_Layer: 0
   m_Name: player
   m_TagString: Untagged
@@ -608,6 +609,22 @@ BoxCollider2D:
   m_Size: {x: 0.4, y: 0.78}
   m_EdgeRadius: 0
 
+--- !u!114 &1211643802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211643794}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6b49f7dca4b4e77a8d6c5e9f6a2b130, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  animateWalking: 1
+  bobAmount: 0.025
+  stepFrequency: 8
+
 --- !u!114 &1211643800
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -642,6 +659,7 @@ GameObject:
   - component: {fileID: 2000000005}
   - component: {fileID: 2000000006}
   - component: {fileID: 2000000007}
+  - component: {fileID: 2000000008}
   - component: {fileID: 2000000004}
   m_Layer: 0
   m_Name: Enemy
@@ -804,6 +822,22 @@ MonoBehaviour:
   bulletDamage: 8
   bulletSpeed: 10
   spreadDegrees: 5
+
+--- !u!114 &2000000008
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6b49f7dca4b4e77a8d6c5e9f6a2b130, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  animateWalking: 1
+  bobAmount: 0.025
+  stepFrequency: 8
 
 --- !u!114 &2000000004
 MonoBehaviour:
