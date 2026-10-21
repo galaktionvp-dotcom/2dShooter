@@ -560,6 +560,26 @@ MonoBehaviour:
   spreadAngle: 2.5
   recoilDistance: 0.08
   muzzleFlashDuration: 0.04
+--- !u!114 &1211643800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211643794}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3a57f2c91de4c68a0f17b6d2e4c8a50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  invulnerabilityDuration: 0.65
+  hitFlashDuration: 0.12
+  hitFlashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  hudPositionX: 20
+  hudPositionY: 20
+  hudWidth: 230
+  hudHeight: 14
 --- !u!1 &2000000000
 GameObject:
   m_ObjectHideFlags: 0
@@ -658,6 +678,7 @@ BoxCollider2D:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2000000000}
   m_Enabled: 1
+  serializedVersion: 3
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -689,12 +710,33 @@ BoxCollider2D:
     pivot: {x: 0.5, y: 0.5}
     oldSize: {x: 1, y: 1}
     newSize: {x: 1, y: 1}
-    adaptiveTilingThreshold: 0
+    adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &2000000004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a17f7c2e6b9841a5b3d9c0e4f2a61d73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 6
+  contactDamage: 10
+  contactDamageInterval: 0.8
+  knockbackForce: 3
+  hitFlashDuration: 0.08
+  hitFlashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  healthBarWidth: 76
+  healthBarHeight: 8
+  healthBarVerticalOffset: 0.95
 --- !u!50 &2000000005
 Rigidbody2D:
   serializedVersion: 5
@@ -722,49 +764,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
-
---- !u!114 &2000000004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2000000000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a17f7c2e6b9841a5b3d9c0e4f2a61d73, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  maxHealth: 3
-  contactDamage: 10
-  contactDamageInterval: 0.8
-  knockbackForce: 3
-  hitFlashDuration: 0.08
-  hitFlashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
-  healthBarWidth: 76
-  healthBarHeight: 8
-  healthBarVerticalOffset: 0.95
---- !u!114 &1211643800
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1211643794}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b3a57f2c91de4c68a0f17b6d2e4c8a50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxHealth: 100
-  invulnerabilityDuration: 0.65
-  hitFlashDuration: 0.12
-  hitFlashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
-  hudPositionX: 20
-  hudPositionY: 20
-  hudWidth: 230
-  hudHeight: 14
-
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
