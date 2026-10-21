@@ -84,26 +84,38 @@ public class EnemyHealth : MonoBehaviour
             Die();
     }
 
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        HandlePlayerContact(collision);
+    }
+
     private void OnCollisionStay2D(Collision2D collision)
+    {
+        HandlePlayerContact(collision);
+    }
+
+    private void HandlePlayerContact(Collision2D collision)
     {
         if (isDead || contactDamage <= 0f || Time.time < nextContactDamageTime || collision == null)
             return;
 
-        PlayerHealth player = collision.gameObject != null
-            ? collision.gameObject.GetComponentInParent<PlayerHealth>()
-            : null;
+        PlayerHealth player = null;
 
-        if (player == null && collision.collider != null)
+        if (collision.collider != null)
             player = collision.collider.GetComponentInParent<PlayerHealth>();
 
         if (player == null && collision.otherCollider != null)
             player = collision.otherCollider.GetComponentInParent<PlayerHealth>();
+
+        if (player == null && collision.gameObject != null)
+            player = collision.gameObject.GetComponentInParent<PlayerHealth>();
 
         if (player == null || player.IsDead)
             return;
 
         Vector2 direction = ((Vector2)player.transform.position - (Vector2)transform.position).normalized;
         Vector2 hitPoint = player.transform.position;
+
         if (collision.contactCount > 0)
             hitPoint = collision.GetContact(0).point;
 
