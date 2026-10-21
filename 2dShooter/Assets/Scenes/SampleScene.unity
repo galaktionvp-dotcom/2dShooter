@@ -419,6 +419,7 @@ GameObject:
   - component: {fileID: 1211643798}
   - component: {fileID: 1211643797}
   - component: {fileID: 1211643799}
+  - component: {fileID: 1211643800}
   m_Layer: 0
   m_Name: player
   m_TagString: Untagged
@@ -706,9 +707,35 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   maxHealth: 3
+  contactDamage: 10
+  contactDamageInterval: 0.8
   knockbackForce: 3
   hitFlashDuration: 0.08
   hitFlashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  healthBarWidth: 76
+  healthBarHeight: 8
+  healthBarVerticalOffset: 0.95
+--- !u!114 &1211643800
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211643794}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3a57f2c91de4c68a0f17b6d2e4c8a50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  invulnerabilityDuration: 0.65
+  hitFlashDuration: 0.12
+  hitFlashColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  hudPositionX: 20
+  hudPositionY: 20
+  hudWidth: 230
+  hudHeight: 14
+
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
