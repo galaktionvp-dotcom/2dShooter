@@ -9,17 +9,35 @@ public class EnemyHealth : MonoBehaviour
     [InspectorLabel("Максимальное здоровье", "Общее количество здоровья врага в начале игры.")]
     [SerializeField, Min(1f)] private float maxHealth = 3f;
 
+    [Header("Контактный урон")]
+    [InspectorLabel("Урон при касании", "Количество здоровья, которое игрок теряет при столкновении с врагом.")]
+    [SerializeField, Min(0f)] private float contactDamage = 10f;
+
+    [InspectorLabel("Интервал контактного урона", "Минимальное время между ударами врага по игроку.")]
+    [SerializeField, Min(0.1f)] private float contactDamageInterval = 0.8f;
+
     [Header("Реакция на попадание")]
-    [InspectorLabel("Сила отбрасывания", "Насколько сильно враг отталкивается от точки попадания. Работает с динамическим Rigidbody2D.")]
+    [InspectorLabel("Сила отбрасывания", "Насколько сильно враг отталкивается от попадания. Работает с динамическим Rigidbody2D.")]
     [SerializeField, Min(0f)] private float knockbackForce = 3f;
 
-    [InspectorLabel("Длительность вспышки", "Сколько секунд враг подсвечивается при получении урона.")]
+    [InspectorLabel("Длительность вспышки", "Сколько секунд враг подсвечивается после получения урона.")]
     [SerializeField, Min(0f)] private float hitFlashDuration = 0.08f;
 
     [InspectorLabel("Цвет попадания", "Цвет спрайта на короткое время после попадания.")]
     [SerializeField] private Color hitFlashColor = new Color(1f, 0.25f, 0.25f, 1f);
 
+    [Header("Полоска здоровья")]
+    [InspectorLabel("Ширина полоски", "Ширина полоски здоровья над врагом в пикселях экрана.")]
+    [SerializeField, Min(20f)] private float healthBarWidth = 76f;
+
+    [InspectorLabel("Высота полоски", "Высота полоски здоровья над врагом в пикселях экрана.")]
+    [SerializeField, Min(4f)] private float healthBarHeight = 8f;
+
+    [InspectorLabel("Высота над врагом", "Смещение полоски вверх относительно центра врага в единицах Unity.")]
+    [SerializeField, Min(0f)] private float healthBarVerticalOffset = 0.95f;
+
     private float currentHealth;
+    private float nextContactDamageTime;
     private bool isDead;
     private Rigidbody2D body;
     private SpriteRenderer[] spriteRenderers;
@@ -33,8 +51,13 @@ public class EnemyHealth : MonoBehaviour
     private void Awake()
     {
         maxHealth = Mathf.Max(1f, maxHealth);
+        contactDamage = Mathf.Max(0f, contactDamage);
+        contactDamageInterval = Mathf.Max(0.1f, contactDamageInterval);
         knockbackForce = Mathf.Max(0f, knockbackForce);
         hitFlashDuration = Mathf.Max(0f, hitFlashDuration);
+        healthBarWidth = Mathf.Max(20f, healthBarWidth);
+        healthBarHeight = Mathf.Max(4f, healthBarHeight);
+        healthBarVerticalOffset = Mathf.Max(0f, healthBarVerticalOffset);
 
         currentHealth = maxHealth;
         body = GetComponent<Rigidbody2D>();
@@ -59,6 +82,27 @@ public class EnemyHealth : MonoBehaviour
 
         if (currentHealth <= 0f)
             Die();
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (isDead || contactDamage <= 0f || Time.time < nextContactDamageTime || collision == null)
+            return;
+
+        PlayerHealth player = collision.collider != null
+            ? collision.collider.GetComponentInParent<PlayerHealth>()
+            : null;
+
+        if (player == null || player.IsDead)
+            return;
+
+        Vector2 direction = ((Vector2)player.transform.position - (Vector2)transform.position).normalized;
+        Vector2 hitPoint = player.transform.position;
+        if (collision.contactCount > 0)
+            hitPoint = collision.GetContact(0).point;
+
+        if (player.TakeDamage(contactDamage, hitPoint, direction))
+            nextContactDamageTime = Time.time + contactDamageInterval;
     }
 
     private void PlayHitFeedback()
@@ -102,6 +146,48 @@ public class EnemyHealth : MonoBehaviour
 
         if (direction.sqrMagnitude > 0.001f)
             body.AddForce(direction * knockbackForce, ForceMode2D.Impulse);
+    }
+
+    private void OnGUI()
+    {
+        if (isDead || currentHealth <= 0f)
+            return;
+
+        Camera targetCamera = Camera.main;
+        if (targetCamera == null)
+            return;
+
+        Vector3 worldPosition = transform.position + Vector3.up * healthBarVerticalOffset;
+        Vector3 screenPosition = targetCamera.WorldToScreenPoint(worldPosition);
+        if (screenPosition.z <= 0f)
+            return;
+
+        float x = screenPosition.x - healthBarWidth * 0.5f;
+        float y = Screen.height - screenPosition.y;
+        Rect background = new Rect(x, y, healthBarWidth, healthBarHeight);
+        float ratio = Mathf.Clamp01(currentHealth / maxHealth);
+        Rect fill = new Rect(
+            x + 2f,
+            y + 2f,
+            Mathf.Max(0f, (healthBarWidth - 4f) * ratio),
+            Mathf.Max(0f, healthBarHeight - 4f)
+        );
+
+        Color previousColor = GUI.color;
+        GUI.color = new Color(0.04f, 0.04f, 0.04f, 0.9f);
+        GUI.DrawTexture(background, Texture2D.whiteTexture);
+        GUI.color = GetHealthColor(ratio);
+        GUI.DrawTexture(fill, Texture2D.whiteTexture);
+        GUI.color = previousColor;
+    }
+
+    private static Color GetHealthColor(float ratio)
+    {
+        if (ratio > 0.5f)
+            return new Color(0.2f, 0.85f, 0.3f, 1f);
+        if (ratio > 0.25f)
+            return new Color(1f, 0.75f, 0.15f, 1f);
+        return new Color(1f, 0.2f, 0.2f, 1f);
     }
 
     private void Die()
