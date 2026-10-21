@@ -89,9 +89,15 @@ public class EnemyHealth : MonoBehaviour
         if (isDead || contactDamage <= 0f || Time.time < nextContactDamageTime || collision == null)
             return;
 
-        PlayerHealth player = collision.collider != null
-            ? collision.collider.GetComponentInParent<PlayerHealth>()
+        PlayerHealth player = collision.gameObject != null
+            ? collision.gameObject.GetComponentInParent<PlayerHealth>()
             : null;
+
+        if (player == null && collision.collider != null)
+            player = collision.collider.GetComponentInParent<PlayerHealth>();
+
+        if (player == null && collision.otherCollider != null)
+            player = collision.otherCollider.GetComponentInParent<PlayerHealth>();
 
         if (player == null || player.IsDead)
             return;
