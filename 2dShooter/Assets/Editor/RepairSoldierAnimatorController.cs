@@ -40,8 +40,10 @@ public static class RepairSoldierAnimatorController
             return;
         }
 
-        if (AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ControllerPath) != null)
-            AssetDatabase.DeleteAsset(ControllerPath);
+        // Remove the broken serialized asset unconditionally before creating a fresh one.
+        // This avoids relying on Unity being able to load the malformed controller first.
+        AssetDatabase.DeleteAsset(ControllerPath);
+        AssetDatabase.Refresh();
 
         AnimatorController controller = AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
         AnimatorStateMachine stateMachine = controller.layers[0].stateMachine;
