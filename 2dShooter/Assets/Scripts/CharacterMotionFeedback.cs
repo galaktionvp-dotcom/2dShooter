@@ -1,134 +1,189 @@
 using InspectorLocalization;
 using UnityEngine;
 
-/// <summary>Procedural visual animation. Does not use AnimatorController assets.</summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody2D))]
-public class CharacterMotionFeedback : MonoBehaviour
+public sealed class CharacterMotionFeedback : MonoBehaviour
 {
-    [Header("Визуальный объект")]
-    [InspectorLabel("Визуальная часть персонажа", "Дочерний объект со SpriteRenderer. Меняется только изображение, не физический коллайдер.")]
+    private const int RunFrameCount = 8;
+
+    [Header("Анимация бега")]
+    [InspectorLabel("Визуальный объект", "Дочерний объект со SpriteRenderer. Меняется только изображение, физический коллайдер не затрагивается.")]
     [SerializeField] private Transform visualRoot;
 
-    [Header("Ходьба")]
-    [InspectorLabel("Включить анимацию ходьбы", "Покачивает изображение во время движения.")]
-    [SerializeField] private bool animateWalking = true;
-    [InspectorLabel("Высота шага", "Высота покачивания изображения при ходьбе.")]
-    [SerializeField, Range(0f, 0.18f)] private float stepHeight = 0.075f;
-    [InspectorLabel("Частота шагов", "Скорость цикла визуальной анимации ходьбы.")]
-    [SerializeField, Range(1f, 16f)] private float stepFrequency = 8f;
+    [InspectorLabel("Кадры бега", "Лист из 8 кадров бега для этого персонажа. Кадры расположены горизонтально.")]
+    [SerializeField] private Texture2D runSheet;
 
-    [Header("Перезарядка")]
-    [InspectorLabel("Анимировать перезарядку", "Сжимает и слегка опускает изображение при перезарядке.")]
-    [SerializeField] private bool animateReload = true;
-    [InspectorLabel("Сила сжатия", "Насколько уменьшается высота изображения при перезарядке.")]
-    [SerializeField, Range(0f, 0.25f)] private float reloadSquash = 0.12f;
+    [InspectorLabel("Оттенок кадров бега", "Для врага задаёт оливковый оттенок, чтобы отличать его от игрока; для игрока оставь белый.")]
+    [SerializeField] private Color runningTint = Color.white;
 
-    [Header("Выстрел")]
-    [InspectorLabel("Сила отдачи изображения", "Коротко сжимает изображение сразу после выстрела.")]
-    [SerializeField, Range(0f, 0.35f)] private float fireKick = 0.16f;
-    [InspectorLabel("Длительность отдачи", "Сколько длится визуальная реакция на выстрел.")]
-    [SerializeField, Range(0.03f, 0.3f)] private float fireKickDuration = 0.13f;
+    [InspectorLabel("Частота кадров", "Базовая скорость смены кадров при беге. Фактическая скорость немного зависит от скорости движения.")]
+    [SerializeField, Range(4f, 18f)] private float runFrameRate = 10f;
 
-    [Header("Плавность")]
-    [InspectorLabel("Сглаживание анимации", "Скорость плавного перехода между визуальными состояниями.")]
-    [SerializeField, Range(1f, 30f)] private float smoothing = 16f;
+    [InspectorLabel("Порог движения", "Если скорость персонажа ниже этого значения, показывается исходная неподвижная картинка.")]
+    [SerializeField, Min(0f)] private float movementThreshold = 0.12f;
+
+    [InspectorLabel("Покачивание при беге", "Небольшое вертикальное покачивание изображения во время бега. Коллайдер и Rigidbody2D не двигаются отдельно.")]
+    [SerializeField, Range(0f, 0.06f)] private float bobAmount = 0.015f;
 
     private Rigidbody2D body;
-    private PlayerShooting playerShooting;
-    private EnemyWeapon enemyWeapon;
-    private EnemyHealth enemyHealth;
-    private Vector3 baseScale;
+    private SpriteRenderer spriteRenderer;
+    private Sprite idleSprite;
+    private Color idleColor;
+    private Sprite[] runFrames;
     private Vector3 baseLocalPosition;
-    private float stepPhase;
-    private float movementBlend;
-    private float observedShotTime = -10f;
+    private float animationTime;
 
     private void Awake()
     {
         body = GetComponent<Rigidbody2D>();
-        playerShooting = GetComponent<PlayerShooting>();
-        enemyWeapon = GetComponent<EnemyWeapon>();
-        enemyHealth = GetComponent<EnemyHealth>();
 
         if (visualRoot == null)
         {
             SpriteRenderer childSprite = GetComponentInChildren<SpriteRenderer>(true);
-            if (childSprite != null && childSprite.transform != transform)
+            if (childSprite != null)
                 visualRoot = childSprite.transform;
-            else if (GetComponent<SpriteRenderer>() != null)
-                visualRoot = transform;
         }
 
         if (visualRoot == null)
         {
-            Debug.LogError($"[{nameof(CharacterMotionFeedback)}] На объекте '{name}' не найден SpriteRenderer.", this);
+            Debug.LogError("[" + nameof(CharacterMotionFeedback) + "] Не найден визуальный объект со SpriteRenderer.", this);
             enabled = false;
             return;
         }
 
-        baseScale = visualRoot.localScale;
+        spriteRenderer = visualRoot.GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+        {
+            Debug.LogError("[" + nameof(CharacterMotionFeedback) + "] На визуальном объекте должен быть SpriteRenderer.", this);
+            enabled = false;
+            return;
+        }
+
+        idleSprite = spriteRenderer.sprite;
+        idleColor = spriteRenderer.color;
         baseLocalPosition = visualRoot.localPosition;
-        if (playerShooting != null)
-            observedShotTime = Mathf.Max(observedShotTime, playerShooting.LastShotTime);
-        if (enemyWeapon != null)
-            observedShotTime = Mathf.Max(observedShotTime, enemyWeapon.LastShotTime);
+
+        runFrameRate = Mathf.Clamp(runFrameRate, 4f, 18f);
+        movementThreshold = Mathf.Max(0f, movementThreshold);
+        bobAmount = Mathf.Max(0f, bobAmount);
+
+        BuildRunFrames();
+    }
+
+    private void BuildRunFrames()
+    {
+        if (runSheet == null)
+        {
+            Debug.LogWarning("[" + nameof(CharacterMotionFeedback) + "] Не назначен лист кадров бега. Персонаж останется с исходным спрайтом.", this);
+            return;
+        }
+
+        if (runSheet.width % RunFrameCount != 0 || runSheet.height <= 0)
+        {
+            Debug.LogError("[" + nameof(CharacterMotionFeedback) + "] Лист бега должен содержать ровно 8 одинаковых кадров в одну горизонтальную строку.", this);
+            return;
+        }
+
+        int frameWidth = runSheet.width / RunFrameCount;
+        if (frameWidth <= 0)
+        {
+            Debug.LogError("[" + nameof(CharacterMotionFeedback) + "] Неверный размер листа кадров бега.", this);
+            return;
+        }
+
+        Vector2 pivot = idleSprite != null
+            ? new Vector2(idleSprite.pivot.x / idleSprite.rect.width, idleSprite.pivot.y / idleSprite.rect.height)
+            : new Vector2(0.5f, 0.5f);
+        float pixelsPerUnit = idleSprite != null ? idleSprite.pixelsPerUnit : 80f;
+
+        runFrames = new Sprite[RunFrameCount];
+        for (int i = 0; i < RunFrameCount; i++)
+        {
+            runFrames[i] = Sprite.Create(
+                runSheet,
+                new Rect(i * frameWidth, 0f, frameWidth, runSheet.height),
+                pivot,
+                pixelsPerUnit,
+                0,
+                SpriteMeshType.FullRect);
+
+            runFrames[i].name = gameObject.name + "_Run_" + i;
+            runFrames[i].hideFlags = HideFlags.HideAndDontSave;
+        }
     }
 
     private void Update()
     {
-        if (body == null || visualRoot == null)
+        if (spriteRenderer == null || idleSprite == null)
             return;
 
-        bool isDead = enemyHealth != null && enemyHealth.IsDead;
-        float speed = !isDead && animateWalking ? body.linearVelocity.magnitude : 0f;
-        float movementTarget = speed > 0.15f ? Mathf.Clamp01(speed / 2f) : 0f;
-        movementBlend = Mathf.MoveTowards(movementBlend, movementTarget, Time.deltaTime * 8f);
-        if (movementBlend > 0.01f)
-            stepPhase += Time.deltaTime * stepFrequency * Mathf.Lerp(0.6f, 1.4f, movementBlend);
+        float speed = body != null ? body.linearVelocity.magnitude : 0f;
+        if (runFrames == null || runFrames.Length == 0 || speed <= movementThreshold)
+        {
+            if (spriteRenderer.sprite != idleSprite)
+                spriteRenderer.sprite = idleSprite;
+            spriteRenderer.color = idleColor;
 
-        bool reloading = !isDead && animateReload &&
-            ((playerShooting != null && playerShooting.IsReloading) ||
-             (enemyWeapon != null && enemyWeapon.IsReloading));
+            float restoreBlend = 1f - Mathf.Exp(-15f * Time.deltaTime);
+            visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, baseLocalPosition, restoreBlend);
+            return;
+        }
 
-        float currentShotTime = observedShotTime;
-        if (playerShooting != null)
-            currentShotTime = Mathf.Max(currentShotTime, playerShooting.LastShotTime);
-        if (enemyWeapon != null)
-            currentShotTime = Mathf.Max(currentShotTime, enemyWeapon.LastShotTime);
-        if (currentShotTime > observedShotTime + 0.0001f)
-            observedShotTime = currentShotTime;
+        float speedBlend = Mathf.InverseLerp(movementThreshold, 5f, speed);
+        float currentFrameRate = runFrameRate * Mathf.Lerp(0.75f, 1.2f, speedBlend);
+        animationTime += Time.deltaTime * currentFrameRate;
 
-        float shotAge = Time.time - observedShotTime;
-        float firePulse = !isDead && shotAge >= 0f && shotAge < fireKickDuration
-            ? 1f - shotAge / fireKickDuration : 0f;
-        float step = Mathf.Sin(stepPhase);
-        float bounce = animateWalking ? Mathf.Abs(step) * stepHeight * movementBlend : 0f;
-        float reloadPulse = reloading ? 0.5f + 0.5f * Mathf.Sin(Time.time * 10f) : 0f;
+        int frameIndex = Mathf.FloorToInt(animationTime) % RunFrameCount;
+        if (spriteRenderer.sprite != runFrames[frameIndex])
+            spriteRenderer.sprite = runFrames[frameIndex];
+        spriteRenderer.color = runningTint;
 
-        float horizontalScale = 1f - 0.055f * movementBlend * Mathf.Abs(step);
-        float verticalScale = 1f + 0.075f * movementBlend * Mathf.Abs(step);
-        horizontalScale += reloadPulse * 0.025f - firePulse * fireKick;
-        verticalScale -= reloadPulse * reloadSquash;
-        verticalScale += firePulse * fireKick * 0.45f;
-
-        Vector3 targetScale = new Vector3(
-            baseScale.x * Mathf.Max(0.5f, horizontalScale),
-            baseScale.y * Mathf.Max(0.5f, verticalScale),
-            baseScale.z);
-        Vector3 targetPosition = baseLocalPosition + Vector3.up * (bounce - reloadPulse * 0.025f);
-        float blend = 1f - Mathf.Exp(-Mathf.Max(1f, smoothing) * Time.deltaTime);
-        visualRoot.localScale = Vector3.Lerp(visualRoot.localScale, targetScale, blend);
+        float phase = (animationTime / RunFrameCount) * Mathf.PI * 2f;
+        Vector3 targetPosition = baseLocalPosition + Vector3.up * (Mathf.Abs(Mathf.Sin(phase)) * bobAmount);
+        float blend = 1f - Mathf.Exp(-20f * Time.deltaTime);
         visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, targetPosition, blend);
     }
 
-    private void OnDisable() => RestoreVisualPose();
-    private void OnDestroy() => RestoreVisualPose();
-
-    private void RestoreVisualPose()
+    private void OnDisable()
     {
-        if (visualRoot == null) return;
-        visualRoot.localScale = baseScale;
-        visualRoot.localPosition = baseLocalPosition;
+        RestoreVisual();
+    }
+
+    private void OnDestroy()
+    {
+        RestoreVisual();
+        ReleaseRunFrames();
+    }
+
+    private void RestoreVisual()
+    {
+        if (spriteRenderer != null && idleSprite != null)
+        {
+            spriteRenderer.sprite = idleSprite;
+            spriteRenderer.color = idleColor;
+        }
+
+        if (visualRoot != null)
+            visualRoot.localPosition = baseLocalPosition;
+    }
+
+    private void ReleaseRunFrames()
+    {
+        if (runFrames == null)
+            return;
+
+        for (int i = 0; i < runFrames.Length; i++)
+        {
+            if (runFrames[i] == null)
+                continue;
+
+            if (Application.isPlaying)
+                Destroy(runFrames[i]);
+            else
+                DestroyImmediate(runFrames[i]);
+        }
+
+        runFrames = null;
     }
 }
