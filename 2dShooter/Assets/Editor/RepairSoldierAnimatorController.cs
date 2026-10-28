@@ -160,6 +160,12 @@ public static class RepairSoldierAnimatorController
 
             // Remove the corrupted controller and preserve its GUID for scene references.
             AssetDatabase.DeleteAsset(ControllerPath);
+            // Delete the physical file too: a controller with a broken importer can survive
+            // AssetDatabase.DeleteAsset on some Unity versions.
+            if (File.Exists(fullControllerPath))
+                File.Delete(fullControllerPath);
+            if (File.Exists(metaPath))
+                File.Delete(metaPath);
             File.WriteAllText(metaPath, ControllerMeta);
 
             AnimatorController controller =
