@@ -27,6 +27,7 @@ public class EnemyWeapon : MonoBehaviour
     private int shotsInBurst;
     public bool IsFiring { get; private set; }
     public bool IsReloading { get; private set; }
+    public float LastShotTime { get; private set; } = -10f;
 
     private void Awake()
     {
@@ -65,6 +66,7 @@ public class EnemyWeapon : MonoBehaviour
         nextShot = Time.time + fireInterval;
         shotsInBurst++;
         IsFiring = true;
+        LastShotTime = Time.time;
         aim = Quaternion.Euler(0, 0, Random.Range(-spreadDegrees, spreadDegrees)) * aim.normalized;
 
         GameObject shot = new GameObject("EnemyBullet");
