@@ -92,12 +92,12 @@ public class CharacterMotionFeedback : MonoBehaviour
             : 0f;
 
         float shotTime = -10f;
-        if (playerShooting != null && playerShooting.IsFiring)
-            shotTime = Time.time;
-        else if (enemyWeapon != null)
-            shotTime = enemyWeapon.LastShotTime;
+        if (playerShooting != null)
+            shotTime = Mathf.Max(shotTime, playerShooting.LastShotTime);
+        if (enemyWeapon != null)
+            shotTime = Mathf.Max(shotTime, enemyWeapon.LastShotTime);
 
-        if (shotTime > lastObservedShotTime + 0.0001f)
+        if (shotTime > lastObservedShotTime)
             lastObservedShotTime = shotTime;
 
         float shotAge = Time.time - lastObservedShotTime;
