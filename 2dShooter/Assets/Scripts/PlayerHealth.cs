@@ -40,6 +40,7 @@ public class PlayerHealth : MonoBehaviour
     private SpriteRenderer[] spriteRenderers;
     private Color[] originalColors;
     private Coroutine hitFeedbackRoutine;
+    private CharacterSpriteAnimator characterAnimator;
 
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
@@ -57,6 +58,7 @@ public class PlayerHealth : MonoBehaviour
 
         currentHealth = maxHealth;
         body = GetComponent<Rigidbody2D>();
+        characterAnimator = GetComponent<CharacterSpriteAnimator>();
         spriteRenderers = GetComponentsInChildren<SpriteRenderer>(true);
         originalColors = new Color[spriteRenderers.Length];
 
@@ -72,6 +74,7 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = Mathf.Max(0f, currentHealth - damage);
         invulnerableUntil = Time.time + invulnerabilityDuration;
         PlayHitFeedback();
+        characterAnimator?.PlayHit();
 
         if (currentHealth <= 0f)
             Die();
@@ -209,6 +212,7 @@ public class PlayerHealth : MonoBehaviour
             return;
 
         isDead = true;
+        characterAnimator?.PlayDeath();
         RestoreOriginalColors();
 
         PlayerMovement movement = GetComponent<PlayerMovement>();

@@ -421,7 +421,7 @@ GameObject:
   - component: {fileID: 1211643799}
   - component: {fileID: 1211643800}
   - component: {fileID: 1211643801}
-  - component: {fileID: 1211643802}
+  - component: {fileID: 1211643803}
   m_Layer: 0
   m_Name: player
   m_TagString: Untagged
@@ -609,7 +609,7 @@ BoxCollider2D:
   m_Size: {x: 0.4, y: 0.78}
   m_EdgeRadius: 0
 
---- !u!114 &1211643802
+--- !u!114 &1211643803
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -618,13 +618,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 1211643794}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a6b49f7dca4b4e77a8d6c5e9f6a2b130, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  animateWalking: 1
-  bobAmount: 0.025
-  stepFrequency: 8
-
+  m_Script: {fileID: 11500000, guid: e7a85f20d9734cc39a1bc27e6a44f082, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animationSheet: {fileID: 0}
+  isEnemy: 0
+  pixelsPerUnit: 45
+  idleFrameRate: 4
+  walkFrameRate: 10
+  runFrameRate: 16
+  runningThreshold: 3.2
+  actionFrameRate: 20
+  shootDuration: 0.28
+  hitDuration: 0.42
+  deathFrameRate: 9
 --- !u!114 &1211643800
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -659,7 +666,7 @@ GameObject:
   - component: {fileID: 2000000005}
   - component: {fileID: 2000000006}
   - component: {fileID: 2000000007}
-  - component: {fileID: 2000000008}
+  - component: {fileID: 2000000009}
   - component: {fileID: 2000000004}
   m_Layer: 0
   m_Name: Enemy
@@ -823,7 +830,7 @@ MonoBehaviour:
   bulletSpeed: 10
   spreadDegrees: 5
 
---- !u!114 &2000000008
+--- !u!114 &2000000009
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -832,13 +839,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 2000000000}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a6b49f7dca4b4e77a8d6c5e9f6a2b130, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  animateWalking: 1
-  bobAmount: 0.025
-  stepFrequency: 8
-
+  m_Script: {fileID: 11500000, guid: e7a85f20d9734cc39a1bc27e6a44f082, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animationSheet: {fileID: 0}
+  isEnemy: 1
+  pixelsPerUnit: 45
+  idleFrameRate: 4
+  walkFrameRate: 10
+  runFrameRate: 16
+  runningThreshold: 3.2
+  actionFrameRate: 20
+  shootDuration: 0.28
+  hitDuration: 0.42
+  deathFrameRate: 9
 --- !u!114 &2000000004
 MonoBehaviour:
   m_ObjectHideFlags: 0

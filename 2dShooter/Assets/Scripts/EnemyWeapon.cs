@@ -17,13 +17,28 @@ public class EnemyWeapon : MonoBehaviour
     [InspectorLabel("Разброс", "Небольшой разброс, чтобы враг не попадал всегда.")]
     [SerializeField, Range(0f, 20f)] private float spreadDegrees = 5f;
 
+    [Header("Магазин врага")]
+    [InspectorLabel("Размер магазина", "Сколько выстрелов враг делает до перезарядки.")]
+    [SerializeField, Min(1)] private int magazineSize = 8;
+    [InspectorLabel("Длительность перезарядки", "Сколько секунд занимает перезарядка врага.")]
+    [SerializeField, Min(0f)] private float reloadDuration = 1.5f;
+
     private EnemyHealth health;
     private PlayerHealth player;
+    private CharacterSpriteAnimator characterAnimator;
+    private int ammoInMagazine;
+    private float reloadFinishTime;
+    private bool isReloading;
     private float nextShot;
 
     private void Awake()
     {
         health = GetComponent<EnemyHealth>();
+        characterAnimator = GetComponent<CharacterSpriteAnimator>();
+        magazineSize = Mathf.Max(1, magazineSize);
+        reloadDuration = Mathf.Max(0f, reloadDuration);
+        ammoInMagazine = magazineSize;
+
         if (target == null)
         {
             player = FindFirstObjectByType<PlayerHealth>();
@@ -43,10 +58,31 @@ public class EnemyWeapon : MonoBehaviour
         }
 
         Vector2 aim = (Vector2)target.position - (Vector2)transform.position;
+        if (aim.sqrMagnitude > 0.001f)
+            transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg);
+
+        if (isReloading)
+        {
+            if (Time.time < reloadFinishTime)
+                return;
+
+            isReloading = false;
+            ammoInMagazine = magazineSize;
+            characterAnimator?.FinishReload();
+        }
+
+        if (ammoInMagazine <= 0)
+        {
+            StartReload();
+            return;
+        }
+
         if (aim.magnitude > attackRange || Time.time < nextShot) return;
         nextShot = Time.time + fireInterval;
+        ammoInMagazine--;
         aim = Quaternion.Euler(0, 0, Random.Range(-spreadDegrees, spreadDegrees)) * aim.normalized;
 
+        characterAnimator?.PlayShoot();
         GameObject shot = new GameObject("EnemyBullet");
         shot.transform.position = transform.position + (Vector3)(aim * 0.5f);
         shot.transform.right = aim;
@@ -63,6 +99,20 @@ public class EnemyWeapon : MonoBehaviour
         collider.isTrigger = true;
         var bullet = shot.AddComponent<Bullet>();
         bullet.Initialize(2f, bulletDamage, transform);
+    }
+
+    private void StartReload()
+    {
+        isReloading = true;
+        reloadFinishTime = Time.time + reloadDuration;
+        characterAnimator?.BeginReload(reloadDuration);
+
+        if (reloadDuration <= 0f)
+        {
+            isReloading = false;
+            ammoInMagazine = magazineSize;
+            characterAnimator?.FinishReload();
+        }
     }
 
     private static Sprite sprite;
