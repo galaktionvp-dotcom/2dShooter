@@ -43,6 +43,7 @@ public class EnemyHealth : MonoBehaviour
     private SpriteRenderer[] spriteRenderers;
     private Color[] originalColors;
     private Coroutine hitFlashRoutine;
+    private CharacterSpriteAnimator characterAnimator;
 
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
@@ -63,6 +64,7 @@ public class EnemyHealth : MonoBehaviour
         body = GetComponent<Rigidbody2D>();
         if (body == null)
             body = GetComponentInParent<Rigidbody2D>();
+        characterAnimator = GetComponent<CharacterSpriteAnimator>();
 
         spriteRenderers = GetComponentsInChildren<SpriteRenderer>(true);
         originalColors = new Color[spriteRenderers.Length];
@@ -125,6 +127,7 @@ public class EnemyHealth : MonoBehaviour
 
     private void PlayHitFeedback()
     {
+        characterAnimator?.PlayHit();
         if (hitFlashDuration <= 0f || spriteRenderers.Length == 0)
             return;
 
@@ -214,6 +217,12 @@ public class EnemyHealth : MonoBehaviour
             return;
 
         isDead = true;
+        characterAnimator?.PlayDeath();
+
+        EnemyAI ai = GetComponent<EnemyAI>();
+        if (ai != null) ai.enabled = false;
+        EnemyWeapon weapon = GetComponent<EnemyWeapon>();
+        if (weapon != null) weapon.enabled = false;
 
         Collider2D[] colliders = GetComponentsInChildren<Collider2D>();
         for (int i = 0; i < colliders.Length; i++)
@@ -225,6 +234,15 @@ public class EnemyHealth : MonoBehaviour
         if (body != null)
             body.linearVelocity = Vector2.zero;
 
+        if (characterAnimator != null)
+            StartCoroutine(DestroyAfterDeathAnimation());
+        else
+            Destroy(gameObject);
+    }
+
+    private IEnumerator DestroyAfterDeathAnimation()
+    {
+        yield return new WaitForSeconds(characterAnimator.DeathAnimationDuration);
         Destroy(gameObject);
     }
 }

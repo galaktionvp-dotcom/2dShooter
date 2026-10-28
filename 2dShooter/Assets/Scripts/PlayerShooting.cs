@@ -33,8 +33,7 @@ public class PlayerShooting : MonoBehaviour
 
     private static Sprite whiteSprite;
     private Camera mainCamera;
-    private SpriteRenderer characterRenderer;
-    private Color originalColor = Color.white;
+    private CharacterSpriteAnimator characterAnimator;
     private float nextShotTime;
     private int ammo;
     private bool reloading;
@@ -54,9 +53,7 @@ public class PlayerShooting : MonoBehaviour
 
         ammo = magazineSize;
         mainCamera = Camera.main;
-        characterRenderer = GetComponent<SpriteRenderer>();
-        if (characterRenderer != null)
-            originalColor = characterRenderer.color;
+        characterAnimator = GetComponent<CharacterSpriteAnimator>();
         EnsureWhiteSprite();
     }
 
@@ -66,7 +63,6 @@ public class PlayerShooting : MonoBehaviour
             mainCamera = Camera.main;
 
         AimAtMouse();
-        UpdateReloadVisual();
 
         if (reloading)
         {
@@ -74,8 +70,7 @@ public class PlayerShooting : MonoBehaviour
             {
                 reloading = false;
                 ammo = magazineSize;
-                if (characterRenderer != null)
-                    characterRenderer.color = originalColor;
+                characterAnimator?.FinishReload();
             }
             else
             {
@@ -119,6 +114,7 @@ public class PlayerShooting : MonoBehaviour
 
         nextShotTime = Time.time + 1f / fireRate;
         ammo--;
+        characterAnimator?.PlayShoot();
         float spread = Random.Range(-spreadAngle, spreadAngle);
         Vector2 direction = Quaternion.Euler(0f, 0f, spread) * transform.right;
         SpawnBullet(direction);
@@ -177,21 +173,13 @@ public class PlayerShooting : MonoBehaviour
         reloading = true;
         reloadStartTime = Time.time;
         reloadFinishTime = Time.time + reloadTime;
+        characterAnimator?.BeginReload(reloadTime);
         if (reloadTime <= 0f)
         {
             reloading = false;
             ammo = magazineSize;
+            characterAnimator?.FinishReload();
         }
-    }
-
-    private void UpdateReloadVisual()
-    {
-        if (!reloading || characterRenderer == null)
-            return;
-
-        float progress = reloadTime <= 0f ? 1f : Mathf.Clamp01((Time.time - reloadStartTime) / reloadTime);
-        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * 16f);
-        characterRenderer.color = Color.Lerp(originalColor, new Color(0.55f, 0.8f, 1f, originalColor.a), 0.25f + pulse * 0.25f);
     }
 
     private void OnGUI()
@@ -226,12 +214,6 @@ public class PlayerShooting : MonoBehaviour
         {
             GUI.Label(new Rect(x, y + 27f, 280f, 24f), "R — перезарядка", new GUIStyle(style) { fontSize = Mathf.Max(12, hudFontSize - 5), fontStyle = FontStyle.Normal });
         }
-    }
-
-    private void OnDisable()
-    {
-        if (characterRenderer != null)
-            characterRenderer.color = originalColor;
     }
 
     private static Sprite GetWhiteSprite()

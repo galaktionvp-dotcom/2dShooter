@@ -43,10 +43,13 @@ public class EnemyWeapon : MonoBehaviour
         }
 
         Vector2 aim = (Vector2)target.position - (Vector2)transform.position;
+        if (aim.sqrMagnitude > 0.001f)
+            transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg);
         if (aim.magnitude > attackRange || Time.time < nextShot) return;
         nextShot = Time.time + fireInterval;
         aim = Quaternion.Euler(0, 0, Random.Range(-spreadDegrees, spreadDegrees)) * aim.normalized;
 
+        GetComponent<CharacterSpriteAnimator>()?.PlayShoot();
         GameObject shot = new GameObject("EnemyBullet");
         shot.transform.position = transform.position + (Vector3)(aim * 0.5f);
         shot.transform.right = aim;
