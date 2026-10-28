@@ -44,6 +44,7 @@ public class PlayerShooting : MonoBehaviour
 
     public bool IsReloading => reloading;
     public bool IsFiring => Time.time - lastShotTime < 0.12f;
+    public float LastShotTime => lastShotTime;
     public int CurrentAmmo => ammo;
 
     private void Awake()
