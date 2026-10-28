@@ -27,7 +27,7 @@ public static class RepairSoldierAnimatorController
 
     static RepairSoldierAnimatorController()
     {
-        // Rebuild the legacy hand-serialized controller when the editor reloads this script.
+        // Unity automatically repairs the controller once this Editor script compiles.
         EditorApplication.delayCall += AutoRepairBrokenController;
     }
 
@@ -37,18 +37,25 @@ public static class RepairSoldierAnimatorController
         RebuildController();
     }
 
+    private static string AbsoluteAssetPath(string assetPath)
+    {
+        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        return Path.Combine(projectRoot, assetPath.Replace('/', Path.DirectorySeparatorChar));
+    }
+
     private static void AutoRepairBrokenController()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)
             return;
 
-        string fullPath = Path.GetFullPath(ControllerPath);
+        string fullPath = AbsoluteAssetPath(ControllerPath);
         if (!File.Exists(fullPath))
             return;
 
         try
         {
             string serialized = File.ReadAllText(fullPath);
+            // These IDs are only present in the manually serialized broken controller.
             if (!serialized.Contains("1234567801"))
                 return;
 
@@ -60,27 +67,98 @@ public static class RepairSoldierAnimatorController
         }
     }
 
-    private static void RebuildController()
+    private static AnimationCurve Curve(params float[] timeValuePairs)
     {
-        AnimationClip idleClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(IdlePath);
-        AnimationClip walkClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(WalkPath);
-        AnimationClip reloadClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(ReloadPath);
-        AnimationClip fireClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(FirePath);
+        Keyframe[] keys = new Keyframe[timeValuePairs.Length / 2];
+        for (int i = 0; i < keys.Length; i++)
+            keys[i] = new Keyframe(timeValuePairs[i * 2], timeValuePairs[i * 2 + 1]);
 
-        if (idleClip == null || walkClip == null || reloadClip == null || fireClip == null)
+        return new AnimationCurve(keys);
+    }
+
+    private static AnimationClip RebuildClip(
+        string assetPath,
+        string clipName,
+        bool loop,
+        AnimationCurve positionY,
+        AnimationCurve scaleX,
+        AnimationCurve scaleY)
+    {
+        AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(assetPath);
+
+        if (clip == null)
         {
-            Debug.LogError(
-                "[Soldier Animator] Не удалось восстановить контроллер: один или несколько клипов не импортированы. " +
-                "Проверь ошибки импорта в Console.");
-            return;
+            // A broken hand-written .anim is replaced with an asset created by Unity itself.
+            AssetDatabase.DeleteAsset(assetPath);
+            string absolutePath = AbsoluteAssetPath(assetPath);
+            if (File.Exists(absolutePath))
+                File.Delete(absolutePath);
+            if (File.Exists(absolutePath + ".meta"))
+                File.Delete(absolutePath + ".meta");
+
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            clip = new AnimationClip { name = clipName, frameRate = 60f };
+            AssetDatabase.CreateAsset(clip, assetPath);
         }
 
-        string fullControllerPath = Path.GetFullPath(ControllerPath);
+        foreach (EditorCurveBinding binding in AnimationUtility.GetCurveBindings(clip))
+            AnimationUtility.SetEditorCurve(clip, binding, null);
+
+        AnimationUtility.SetEditorCurve(
+            clip,
+            EditorCurveBinding.FloatCurve("", typeof(Transform), "m_LocalPosition.y"),
+            positionY);
+        AnimationUtility.SetEditorCurve(
+            clip,
+            EditorCurveBinding.FloatCurve("", typeof(Transform), "m_LocalScale.x"),
+            scaleX);
+        AnimationUtility.SetEditorCurve(
+            clip,
+            EditorCurveBinding.FloatCurve("", typeof(Transform), "m_LocalScale.y"),
+            scaleY);
+
+        clip.name = clipName;
+        clip.frameRate = 60f;
+        AnimationClipSettings clipSettings = AnimationUtility.GetAnimationClipSettings(clip);
+        clipSettings.loopTime = loop;
+        AnimationUtility.SetAnimationClipSettings(clip, clipSettings);
+        EditorUtility.SetDirty(clip);
+        return clip;
+    }
+
+    private static void RebuildController()
+    {
+        string fullControllerPath = AbsoluteAssetPath(ControllerPath);
         string metaPath = fullControllerPath + ".meta";
 
         try
         {
-            // Delete the corrupted asset but restore its original meta/GUID before recreating it.
+            // Rebuild every clip through Unity APIs so malformed hand-written YAML is not reused.
+            AnimationClip idleClip = RebuildClip(
+                IdlePath, "Idle", true,
+                Curve(0f, 0f, 0.4f, 0.018f, 0.8f, 0f),
+                Curve(0f, 1f, 0.4f, 1.015f, 0.8f, 1f),
+                Curve(0f, 1f, 0.4f, 0.99f, 0.8f, 1f));
+
+            AnimationClip walkClip = RebuildClip(
+                WalkPath, "Walk", true,
+                Curve(0f, 0f, 0.1f, 0.07f, 0.2f, 0.008f, 0.3f, 0.07f, 0.4f, 0f),
+                Curve(0f, 1f, 0.1f, 0.94f, 0.2f, 1f, 0.3f, 0.94f, 0.4f, 1f),
+                Curve(0f, 1f, 0.1f, 1.07f, 0.2f, 0.96f, 0.3f, 1.07f, 0.4f, 1f));
+
+            AnimationClip reloadClip = RebuildClip(
+                ReloadPath, "Reload", false,
+                Curve(0f, 0f, 0.25f, -0.035f, 0.75f, -0.02f, 1.1f, 0f),
+                Curve(0f, 1f, 0.25f, 1.06f, 0.75f, 1.025f, 1.1f, 1f),
+                Curve(0f, 1f, 0.25f, 0.84f, 0.75f, 0.92f, 1.1f, 1f));
+
+            AnimationClip fireClip = RebuildClip(
+                FirePath, "Fire", false,
+                Curve(0f, 0f, 0.035f, -0.025f, 0.12f, 0f),
+                Curve(0f, 1f, 0.035f, 0.82f, 0.12f, 1f),
+                Curve(0f, 1f, 0.035f, 1.1f, 0.12f, 1f));
+
+            // Remove the corrupted controller and preserve its GUID for scene references.
             AssetDatabase.DeleteAsset(ControllerPath);
             File.WriteAllText(metaPath, ControllerMeta);
 
@@ -88,10 +166,7 @@ public static class RepairSoldierAnimatorController
                 AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
 
             if (controller == null)
-            {
-                Debug.LogError("[Soldier Animator] Unity не смогла создать новый контроллер.");
-                return;
-            }
+                throw new InvalidOperationException("Unity вернула пустой AnimatorController.");
 
             AnimatorStateMachine stateMachine = controller.layers[0].stateMachine;
             foreach (ChildAnimatorState child in stateMachine.states)
@@ -141,10 +216,11 @@ public static class RepairSoldierAnimatorController
 
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
             Debug.Log(
-                "[Soldier Animator] Контроллер пересоздан штатным API Unity. GUID сохранён.");
+                "[Soldier Animator] Готово: клипы и контроллер пересозданы средствами Unity. " +
+                "GUID контроллера сохранён; проблемные переходы из старого файла удалены.");
         }
         catch (Exception exception)
         {
