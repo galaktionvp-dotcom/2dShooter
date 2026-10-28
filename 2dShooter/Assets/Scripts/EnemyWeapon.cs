@@ -15,11 +15,18 @@ public class EnemyWeapon : MonoBehaviour
     [InspectorLabel("Скорость пули", "Скорость снаряда.")]
     [SerializeField, Min(1f)] private float bulletSpeed = 10f;
     [InspectorLabel("Разброс", "Небольшой разброс, чтобы враг не попадал всегда.")]
-    [SerializeField, Range(0f, 20f)] private float spreadDegrees = 5f;
+    [SerializeField, Range(0f, 20f)] private float spreadDegrees = 7f;
+    [InspectorLabel("Размер очереди", "Количество выстрелов в короткой очереди.")]
+    [SerializeField, Range(1, 4)] private int burstSize = 3;
+    [InspectorLabel("Пауза между очередями", "Время отдыха после очереди, чтобы игрок успевал уклониться.")]
+    [SerializeField, Min(0f)] private float burstPause = 1.2f;
 
     private EnemyHealth health;
     private PlayerHealth player;
     private float nextShot;
+    private int shotsInBurst;
+    public bool IsFiring { get; private set; }
+    public bool IsReloading { get; private set; }
 
     private void Awake()
     {
@@ -34,6 +41,7 @@ public class EnemyWeapon : MonoBehaviour
 
     private void Update()
     {
+        IsFiring = false;
         if (health != null && health.IsDead) return;
         if (target == null || player == null || player.IsDead)
         {
@@ -44,7 +52,19 @@ public class EnemyWeapon : MonoBehaviour
 
         Vector2 aim = (Vector2)target.position - (Vector2)transform.position;
         if (aim.magnitude > attackRange || Time.time < nextShot) return;
+
+        if (shotsInBurst >= Mathf.Max(1, burstSize))
+        {
+            shotsInBurst = 0;
+            IsReloading = true;
+            nextShot = Time.time + burstPause;
+            return;
+        }
+
+        IsReloading = false;
         nextShot = Time.time + fireInterval;
+        shotsInBurst++;
+        IsFiring = true;
         aim = Quaternion.Euler(0, 0, Random.Range(-spreadDegrees, spreadDegrees)) * aim.normalized;
 
         GameObject shot = new GameObject("EnemyBullet");

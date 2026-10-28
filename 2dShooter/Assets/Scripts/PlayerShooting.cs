@@ -40,6 +40,11 @@ public class PlayerShooting : MonoBehaviour
     private int ammo;
     private bool reloading;
     private float reloadFinishTime;
+    private float lastShotTime = -10f;
+
+    public bool IsReloading => reloading;
+    public bool IsFiring => Time.time - lastShotTime < 0.12f;
+    public int CurrentAmmo => ammo;
 
     private void Awake()
     {
@@ -112,6 +117,7 @@ public class PlayerShooting : MonoBehaviour
 
         nextShotTime = Time.time + 1f / Mathf.Max(0.1f, fireRate);
         ammo--;
+        lastShotTime = Time.time;
 
         float spread = Random.Range(-spreadAngle, spreadAngle);
         Vector2 direction = Quaternion.Euler(0f, 0f, spread) * transform.right;
