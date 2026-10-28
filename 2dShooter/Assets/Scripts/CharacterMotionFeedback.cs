@@ -14,6 +14,9 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
     [InspectorLabel("Кадры бега", "Лист из 8 кадров бега для этого персонажа. Кадры расположены горизонтально.")]
     [SerializeField] private Texture2D runSheet;
 
+    [InspectorLabel("Оттенок кадров бега", "Для врага задаёт оливковый оттенок, чтобы отличать его от игрока; для игрока оставь белый.")]
+    [SerializeField] private Color runningTint = Color.white;
+
     [InspectorLabel("Частота кадров", "Базовая скорость смены кадров при беге. Фактическая скорость немного зависит от скорости движения.")]
     [SerializeField, Range(4f, 18f)] private float runFrameRate = 10f;
 
@@ -26,6 +29,7 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
     private Sprite idleSprite;
+    private Color idleColor;
     private Sprite[] runFrames;
     private Vector3 baseLocalPosition;
     private float animationTime;
@@ -57,6 +61,7 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
         }
 
         idleSprite = spriteRenderer.sprite;
+        idleColor = spriteRenderer.color;
         baseLocalPosition = visualRoot.localPosition;
 
         runFrameRate = Mathf.Clamp(runFrameRate, 4f, 18f);
@@ -118,6 +123,7 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
         {
             if (spriteRenderer.sprite != idleSprite)
                 spriteRenderer.sprite = idleSprite;
+            spriteRenderer.color = idleColor;
 
             float restoreBlend = 1f - Mathf.Exp(-15f * Time.deltaTime);
             visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, baseLocalPosition, restoreBlend);
@@ -131,6 +137,7 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
         int frameIndex = Mathf.FloorToInt(animationTime) % RunFrameCount;
         if (spriteRenderer.sprite != runFrames[frameIndex])
             spriteRenderer.sprite = runFrames[frameIndex];
+        spriteRenderer.color = runningTint;
 
         float phase = (animationTime / RunFrameCount) * Mathf.PI * 2f;
         Vector3 targetPosition = baseLocalPosition + Vector3.up * (Mathf.Abs(Mathf.Sin(phase)) * bobAmount);
@@ -152,7 +159,10 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
     private void RestoreVisual()
     {
         if (spriteRenderer != null && idleSprite != null)
+        {
             spriteRenderer.sprite = idleSprite;
+            spriteRenderer.color = idleColor;
+        }
 
         if (visualRoot != null)
             visualRoot.localPosition = baseLocalPosition;

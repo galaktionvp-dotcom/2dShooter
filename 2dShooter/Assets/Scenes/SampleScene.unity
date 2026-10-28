@@ -623,6 +623,7 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   visualRoot: {fileID: 3000000001}
   runSheet: {fileID: 2800000, guid: 5a6d1f3740ea4cdb9f7a2b9c6d08e1f3, type: 3}
+  runningTint: {r: 1, g: 1, b: 1, a: 1}
   runFrameRate: 10
   movementThreshold: 0.12
   bobAmount: 0.015
@@ -838,7 +839,8 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   visualRoot: {fileID: 3000000003}
-  runSheet: {fileID: 2800000, guid: e19c4a72d5314cf8a0b63e8d1f2a7b90, type: 3}
+  runSheet: {fileID: 2800000, guid: 5a6d1f3740ea4cdb9f7a2b9c6d08e1f3, type: 3}
+  runningTint: {r: 0.78, g: 0.9, b: 0.62, a: 1}
   runFrameRate: 10
   movementThreshold: 0.12
   bobAmount: 0.015
