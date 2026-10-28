@@ -621,14 +621,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6b49f7dca4b4e77a8d6c5e9f6a2b130, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  visualRoot: {fileID: 3000000001}
+  animator: {fileID: 3000000004}
+  speedParameter: Speed
+  reloadParameter: Reloading
+  fireTriggerParameter: Fire
   animateWalking: 1
-  bobAmount: 0.075
-  stepFrequency: 8
   animateReload: 1
-  reloadSquash: 0.12
-  fireKickScale: 0.16
-  animationSmoothing: 16
 
 --- !u!114 &1211643800
 MonoBehaviour:
@@ -840,14 +838,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6b49f7dca4b4e77a8d6c5e9f6a2b130, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  visualRoot: {fileID: 3000000003}
+  animator: {fileID: 3000000005}
+  speedParameter: Speed
+  reloadParameter: Reloading
+  fireTriggerParameter: Fire
   animateWalking: 1
-  bobAmount: 0.075
-  stepFrequency: 8
   animateReload: 1
-  reloadSquash: 0.12
-  fireKickScale: 0.16
-  animationSmoothing: 16
 
 --- !u!114 &2000000004
 MonoBehaviour:
@@ -907,6 +903,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3000000001}
   - component: {fileID: 1211643795}
+  - component: {fileID: 3000000004}
   m_Layer: 0
   m_Name: PlayerVisuals
   m_TagString: Untagged
@@ -939,6 +936,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3000000003}
   - component: {fileID: 2000000002}
+  - component: {fileID: 3000000005}
   m_Layer: 0
   m_Name: EnemyVisuals
   m_TagString: Untagged
@@ -961,6 +959,46 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2000000001}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+
+--- !u!95 &3000000004
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000000}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: a5555555555545558555555555555555, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage:
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+
+--- !u!95 &3000000005
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3000000002}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: a5555555555545558555555555555555, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage:
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
