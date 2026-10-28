@@ -621,7 +621,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7a85f20d9734cc39a1bc27e6a44f082, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animationSheet: {fileID: 2800000, guid: c7d9285d6ec04b2b9cfae1be04b6fd11, type: 3}
+  animationSheet: {fileID: 0}
   isEnemy: 0
   pixelsPerUnit: 45
   idleFrameRate: 4
@@ -842,7 +842,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e7a85f20d9734cc39a1bc27e6a44f082, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animationSheet: {fileID: 2800000, guid: c7d9285d6ec04b2b9cfae1be04b6fd11, type: 3}
+  animationSheet: {fileID: 0}
   isEnemy: 1
   pixelsPerUnit: 45
   idleFrameRate: 4
