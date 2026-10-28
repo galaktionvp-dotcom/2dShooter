@@ -6,8 +6,8 @@ using UnityEngine;
 public sealed class CharacterSpriteAnimator : MonoBehaviour
 {
     private const int FrameColumns = 8;
-    private const int FrameWidth = 32;
-    private const int FrameHeight = 64;
+    private const int FrameWidth = 24;
+    private const int FrameHeight = 48;
     private const int PlayerRowOffset = 0;
     private const int EnemyRowOffset = 6;
 
@@ -76,7 +76,7 @@ public sealed class CharacterSpriteAnimator : MonoBehaviour
         if (animationSheet.width < FrameColumns * FrameWidth ||
             animationSheet.height < 12 * FrameHeight)
         {
-            Debug.LogError("Лист анимаций должен содержать 8 столбцов и 12 строк по 32×64 пикселя.", this);
+            Debug.LogError("Лист анимаций должен содержать 8 столбцов и 12 строк по 24×48 пикселей.", this);
             enabled = false;
             return;
         }
