@@ -28,6 +28,9 @@ public class EnemyWeapon : MonoBehaviour
     [InspectorLabel("Пауза между очередями", "Время отдыха после очереди, чтобы цель успевала уклониться.")]
     [SerializeField, Min(0f)] private float burstPause = 1.2f;
 
+    [InspectorLabel("Снаряд врага", "Заранее размещённый в сцене объект с EnemyProjectile. Повторно используется при каждом выстреле.")]
+    [SerializeField] private EnemyProjectile projectile;
+
     private EnemyHealth health;
     private PlayerHealth player;
     private AllyHealth[] allies;
@@ -49,12 +52,20 @@ public class EnemyWeapon : MonoBehaviour
             player = FindFirstObjectByType<PlayerHealth>();
 
         allies = FindObjectsByType<AllyHealth>(FindObjectsSortMode.None);
+
+        if (projectile == null)
+            projectile = GetComponentInChildren<EnemyProjectile>(true);
+
+        if (projectile != null)
+            projectile.PreparePool(transform);
+        else
+            Debug.LogError("[EnemyWeapon] Не назначен заранее размещённый снаряд EnemyProjectile.", this);
     }
 
     private void Update()
     {
         IsFiring = false;
-        if (health != null && health.IsDead)
+        if ((health != null && health.IsDead) || projectile == null)
             return;
 
         SelectNearestTarget();
@@ -73,39 +84,35 @@ public class EnemyWeapon : MonoBehaviour
             return;
         }
 
+        aim = Quaternion.Euler(
+            0f,
+            0f,
+            Random.Range(-spreadDegrees, spreadDegrees)) * aim.normalized;
+
+        if (!projectile.Launch(
+                transform,
+                (Vector2)transform.position + aim * 0.5f,
+                aim,
+                bulletDamage,
+                bulletSpeed))
+        {
+            return;
+        }
+
         IsReloading = false;
         nextShot = Time.time + fireInterval;
         shotsInBurst++;
         IsFiring = true;
         LastShotTime = Time.time;
-        aim = Quaternion.Euler(0, 0, Random.Range(-spreadDegrees, spreadDegrees)) * aim.normalized;
-
-        GameObject shot = new GameObject("EnemyBullet");
-        shot.transform.position = transform.position + (Vector3)(aim * 0.5f);
-        shot.transform.right = aim;
-        shot.transform.localScale = new Vector3(0.2f, 0.07f, 1f);
-
-        var renderer = shot.AddComponent<SpriteRenderer>();
-        renderer.sprite = BulletSprite();
-        renderer.color = new Color(1f, 0.25f, 0.12f);
-        renderer.sortingOrder = 5;
-
-        var rb = shot.AddComponent<Rigidbody2D>();
-        rb.gravityScale = 0f;
-        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-        rb.linearVelocity = aim * bulletSpeed;
-
-        var collider = shot.AddComponent<CircleCollider2D>();
-        collider.isTrigger = true;
-
-        var bullet = shot.AddComponent<Bullet>();
-        bullet.Initialize(2f, bulletDamage, transform);
     }
 
     private void SelectNearestTarget()
     {
         Transform bestTarget = null;
         float bestDistance = attackRange;
+
+        if (player == null || player.IsDead)
+            player = FindFirstObjectByType<PlayerHealth>();
 
         if (player != null && !player.IsDead)
             ConsiderTarget(player.transform, ref bestTarget, ref bestDistance);
@@ -125,7 +132,10 @@ public class EnemyWeapon : MonoBehaviour
         target = bestTarget;
     }
 
-    private void ConsiderTarget(Transform candidate, ref Transform bestTarget, ref float bestDistance)
+    private void ConsiderTarget(
+        Transform candidate,
+        ref Transform bestTarget,
+        ref float bestDistance)
     {
         if (candidate == null)
             return;
@@ -136,27 +146,5 @@ public class EnemyWeapon : MonoBehaviour
             bestDistance = distance;
             bestTarget = candidate;
         }
-    }
-
-    private static Sprite sprite;
-
-    private static Sprite BulletSprite()
-    {
-        if (sprite != null)
-            return sprite;
-
-        var texture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-        texture.SetPixel(0, 0, Color.white);
-        texture.Apply();
-        texture.hideFlags = HideFlags.HideAndDontSave;
-
-        sprite = Sprite.Create(
-            texture,
-            new Rect(0, 0, 1, 1),
-            new Vector2(0.5f, 0.5f),
-            1f);
-
-        sprite.hideFlags = HideFlags.HideAndDontSave;
-        return sprite;
     }
 }
