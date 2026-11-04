@@ -36,6 +36,7 @@ public class PlayerShooting : MonoBehaviour
 
     private static Sprite whiteSprite;
     private Camera mainCamera;
+    private DirectionalSpriteAnimator characterAnimator;
     private float nextShotTime;
     private int ammo;
     private bool reloading;
@@ -59,6 +60,7 @@ public class PlayerShooting : MonoBehaviour
 
         ammo = magazineSize;
         mainCamera = Camera.main;
+        characterAnimator = GetComponent<DirectionalSpriteAnimator>();
         EnsureWhiteSprite();
     }
 
@@ -75,6 +77,7 @@ public class PlayerShooting : MonoBehaviour
             {
                 reloading = false;
                 ammo = magazineSize;
+                characterAnimator?.FinishReload();
             }
 
             return;
@@ -119,6 +122,7 @@ public class PlayerShooting : MonoBehaviour
         nextShotTime = Time.time + 1f / Mathf.Max(0.1f, fireRate);
         ammo--;
         lastShotTime = Time.time;
+        characterAnimator?.PlayShoot();
 
         float spread = Random.Range(-spreadAngle, spreadAngle);
         Vector2 direction = Quaternion.Euler(0f, 0f, spread) * transform.right;
@@ -182,6 +186,13 @@ public class PlayerShooting : MonoBehaviour
 
         reloading = true;
         reloadFinishTime = Time.time + reloadTime;
+        characterAnimator?.BeginReload(reloadTime);
+        if (reloadTime <= 0f)
+        {
+            reloading = false;
+            ammo = magazineSize;
+            characterAnimator?.FinishReload();
+        }
     }
 
     private static Sprite GetWhiteSprite()
