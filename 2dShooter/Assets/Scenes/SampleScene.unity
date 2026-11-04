@@ -848,7 +848,7 @@ MonoBehaviour:
   idleFrameRate: 4
   walkFrameRate: 10
   runFrameRate: 14
-  runningThreshold: 3.2
+  runningThreshold: 2.1
   shootFrameRate: 20
   shootDuration: 0.28
   hitFrameRate: 18

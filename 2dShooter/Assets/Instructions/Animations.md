@@ -18,7 +18,7 @@
 
 ## Импорт
 
-При открытии Unity Editor скрипт `Assets/Scripts/Editor/PixelAnimationAtlasGenerator.cs` проверяет наличие атласов. Если они ещё не созданы, редактор генерирует два PNG-файла в `Assets/Resources/Animations`, настраивает Sprite Mode = Multiple и нарезает кадры. Для ручного повторного создания доступно меню:
+При открытии Unity Editor скрипт `Assets/Scripts/Editor/PixelAnimationAtlasGenerator.cs` проверяет наличие атласов и нарезает их через актуальный `ISpriteEditorDataProvider` API. Если они ещё не созданы, редактор генерирует два PNG-файла в `Assets/Resources/Animations`, настраивает Sprite Mode = Multiple и нарезает кадры. Для ручного повторного создания доступно меню:
 
 `Tools → 2D Shooter → Создать пиксельные атласы анимаций`.
 
