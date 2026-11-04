@@ -22,14 +22,17 @@ public sealed class AllyUnitAI : MonoBehaviour
     [SerializeField, Min(0.1f)] private float acceleration = 14f;
 
     [Header("Поддержка огнём")]
-    [InspectorLabel("Дальность атаки", "Максимальное расстояние, на котором союзник может атаковать врага.")]
-    [SerializeField, Min(0.5f)] private float attackRange = 5.5f;
+    [InspectorLabel("Дальность атаки", "Максимальное расстояние, на котором союзник может атаковать врага. Установлено как у врага — 6 единиц.")]
+    [SerializeField, Min(0.5f)] private float attackRange = 6f;
 
     [InspectorLabel("Интервал атаки", "Пауза между выстрелами союзника. Чем больше значение, тем слабее поддержка огнём.")]
     [SerializeField, Min(0.2f)] private float fireInterval = 1.5f;
 
     [InspectorLabel("Урон союзника", "Урон одного попадания. Небольшое значение делает союзника слабее обычного врага.")]
     [SerializeField, Min(0f)] private float attackDamage = 1f;
+
+    [InspectorLabel("Снаряд союзника", "Заранее размещённый в сцене объект с видимым спрайтом, Rigidbody2D и AllyProjectile. Он повторно используется при каждом выстреле.")]
+    [SerializeField] private AllyProjectile projectile;
 
     [InspectorLabel("Частота поиска врагов", "Как часто союзник обновляет список целей. Меньшее значение быстрее реагирует, но чаще проверяет сцену.")]
     [SerializeField, Min(0.05f)] private float targetRefreshInterval = 0.25f;
@@ -56,6 +59,14 @@ public sealed class AllyUnitAI : MonoBehaviour
             if (player != null)
                 playerTarget = player.transform;
         }
+
+        if (projectile == null)
+            projectile = GetComponentInChildren<AllyProjectile>(true);
+
+        if (projectile != null)
+            projectile.PreparePool(transform);
+        else
+            Debug.LogError("[AllyUnitAI] Не назначен заранее размещённый снаряд AllyProjectile.", this);
 
         stopDistance = Mathf.Max(0.1f, stopDistance);
         followSpeed = Mathf.Max(0f, followSpeed);
@@ -87,7 +98,7 @@ public sealed class AllyUnitAI : MonoBehaviour
             FindBestTarget();
         }
 
-        if (currentTarget == null || currentTarget.IsDead)
+        if (currentTarget == null || currentTarget.IsDead || projectile == null)
             return;
 
         Vector2 direction = (Vector2)currentTarget.transform.position - body.position;
@@ -102,14 +113,20 @@ public sealed class AllyUnitAI : MonoBehaviour
         if (direction.sqrMagnitude > 0.001f)
             desiredRotation = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 
-        if (Time.time >= nextAttackTime)
+        if (Time.time >= nextAttackTime && !projectile.IsTravelling)
         {
-            currentTarget.TakeDamage(
-                attackDamage,
-                currentTarget.transform.position,
-                direction.sqrMagnitude > 0.001f ? direction.normalized : Vector2.right);
+            Vector2 shotDirection = direction.sqrMagnitude > 0.001f
+                ? direction.normalized
+                : Vector2.right;
 
-            nextAttackTime = Time.time + fireInterval;
+            bool launched = projectile.Launch(
+                transform,
+                (Vector2)transform.position + shotDirection * 0.55f,
+                shotDirection,
+                attackDamage);
+
+            if (launched)
+                nextAttackTime = Time.time + fireInterval;
         }
     }
 
@@ -166,10 +183,7 @@ public sealed class AllyUnitAI : MonoBehaviour
                 continue;
 
             float distance = Vector2.Distance(body.position, enemy.transform.position);
-            if (distance > bestDistance)
-                continue;
-
-            if (!HasClearShot(enemy))
+            if (distance > bestDistance || !HasClearShot(enemy))
                 continue;
 
             bestDistance = distance;
@@ -178,7 +192,6 @@ public sealed class AllyUnitAI : MonoBehaviour
 
         currentTarget = bestTarget;
 
-        // Если враг был уничтожен, обновляем список на следующем поиске.
         if (currentTarget == null)
             RefreshEnemyList();
     }
@@ -201,7 +214,6 @@ public sealed class AllyUnitAI : MonoBehaviour
             if (hitCollider == null)
                 continue;
 
-            // Собственный коллайдер союзника не должен блокировать его выстрел.
             if (hitCollider.transform == transform || hitCollider.transform.IsChildOf(transform))
                 continue;
 
