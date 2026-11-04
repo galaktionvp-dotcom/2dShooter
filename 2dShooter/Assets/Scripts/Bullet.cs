@@ -40,8 +40,13 @@ public class Bullet : MonoBehaviour
 
         EnemyHealth enemy = other.GetComponentInParent<EnemyHealth>();
         PlayerHealth player = other.GetComponentInParent<PlayerHealth>();
+        AllyHealth ally = other.GetComponentInParent<AllyHealth>();
 
-        if ((enemy == null || enemy.IsDead) && (player == null || player.IsDead))
+        bool canDamageEnemy = enemy != null && !enemy.IsDead;
+        bool canDamagePlayer = player != null && !player.IsDead;
+        bool canDamageAlly = ally != null && !ally.IsDead;
+
+        if (!canDamageEnemy && !canDamagePlayer && !canDamageAlly)
         {
             // Попадание в стену или препятствие поглощает снаряд.
             hasHit = true;
@@ -56,14 +61,12 @@ public class Bullet : MonoBehaviour
             ? bulletBody.linearVelocity.normalized
             : (Vector2)transform.right;
 
-        if (enemy != null && !enemy.IsDead)
-        {
+        if (canDamageEnemy)
             enemy.TakeDamage(damage, transform.position, hitDirection);
-        }
-        else if (player != null && !player.IsDead)
-        {
+        else if (canDamageAlly)
+            ally.TakeDamage(damage, transform.position, hitDirection);
+        else if (canDamagePlayer)
             player.TakeDamage(damage, transform.position, hitDirection);
-        }
 
         Destroy(gameObject);
     }

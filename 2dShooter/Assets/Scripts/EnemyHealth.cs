@@ -10,10 +10,10 @@ public class EnemyHealth : MonoBehaviour
     [SerializeField, Min(1f)] private float maxHealth = 3f;
 
     [Header("Контактный урон")]
-    [InspectorLabel("Урон при касании", "Количество здоровья, которое игрок теряет при столкновении с врагом.")]
+    [InspectorLabel("Урон при касании", "Количество здоровья, которое игрок или союзник теряет при столкновении с врагом.")]
     [SerializeField, Min(0f)] private float contactDamage = 10f;
 
-    [InspectorLabel("Интервал контактного урона", "Минимальное время между ударами врага по игроку.")]
+    [InspectorLabel("Интервал контактного урона", "Минимальное время между ударами врага по игроку или союзнику.")]
     [SerializeField, Min(0.1f)] private float contactDamageInterval = 0.8f;
 
     [Header("Реакция на попадание")]
@@ -86,41 +86,64 @@ public class EnemyHealth : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        HandlePlayerContact(collision);
+        HandleUnitContact(collision);
     }
 
     private void OnCollisionStay2D(Collision2D collision)
     {
-        HandlePlayerContact(collision);
+        HandleUnitContact(collision);
     }
 
-    private void HandlePlayerContact(Collision2D collision)
+    private void HandleUnitContact(Collision2D collision)
     {
-        if (isDead || contactDamage <= 0f || Time.time < nextContactDamageTime || collision == null)
+        if (isDead || contactDamage <= 0f ||
+            Time.time < nextContactDamageTime || collision == null)
             return;
 
         PlayerHealth player = null;
+        AllyHealth ally = null;
 
         if (collision.collider != null)
+        {
             player = collision.collider.GetComponentInParent<PlayerHealth>();
+            ally = collision.collider.GetComponentInParent<AllyHealth>();
+        }
 
-        if (player == null && collision.otherCollider != null)
+        if (player == null && ally == null && collision.otherCollider != null)
+        {
             player = collision.otherCollider.GetComponentInParent<PlayerHealth>();
+            ally = collision.otherCollider.GetComponentInParent<AllyHealth>();
+        }
 
-        if (player == null && collision.gameObject != null)
+        if (player == null && ally == null && collision.gameObject != null)
+        {
             player = collision.gameObject.GetComponentInParent<PlayerHealth>();
+            ally = collision.gameObject.GetComponentInParent<AllyHealth>();
+        }
 
-        if (player == null || player.IsDead)
+        Vector2 hitPoint = collision.contactCount > 0
+            ? collision.GetContact(0).point
+            : (Vector2)transform.position;
+
+        if (player != null && !player.IsDead)
+        {
+            Vector2 direction = ((Vector2)player.transform.position -
+                                 (Vector2)transform.position).normalized;
+
+            if (player.TakeDamage(contactDamage, hitPoint, direction))
+                nextContactDamageTime = Time.time + contactDamageInterval;
+
             return;
+        }
 
-        Vector2 direction = ((Vector2)player.transform.position - (Vector2)transform.position).normalized;
-        Vector2 hitPoint = player.transform.position;
+        if (ally != null && !ally.IsDead)
+        {
+            Vector2 direction = ((Vector2)ally.transform.position -
+                                 (Vector2)transform.position).normalized;
 
-        if (collision.contactCount > 0)
-            hitPoint = collision.GetContact(0).point;
-
-        if (player.TakeDamage(contactDamage, hitPoint, direction))
-            nextContactDamageTime = Time.time + contactDamageInterval;
+            if (ally.TakeDamage(contactDamage, hitPoint, direction))
+                nextContactDamageTime = Time.time + contactDamageInterval;
+        }
     }
 
     private void PlayHitFeedback()
@@ -188,8 +211,7 @@ public class EnemyHealth : MonoBehaviour
             x + 2f,
             y + 2f,
             Mathf.Max(0f, (healthBarWidth - 4f) * ratio),
-            Mathf.Max(0f, healthBarHeight - 4f)
-        );
+            Mathf.Max(0f, healthBarHeight - 4f));
 
         Color previousColor = GUI.color;
         GUI.color = new Color(0.04f, 0.04f, 0.04f, 0.9f);
