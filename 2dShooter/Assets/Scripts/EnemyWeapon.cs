@@ -54,6 +54,13 @@ public class EnemyWeapon : MonoBehaviour
         }
 
         Vector2 aim = (Vector2)target.position - (Vector2)transform.position;
+        // Keep the enemy root aligned with its target so the animator can select
+        // the correct pre-rendered 8-direction sprite instead of always facing East.
+        if (aim.sqrMagnitude > 0.001f)
+        {
+            float aimAngle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0f, 0f, aimAngle);
+        }
         if (IsReloading)
         {
             if (Time.time < nextShot) return;
