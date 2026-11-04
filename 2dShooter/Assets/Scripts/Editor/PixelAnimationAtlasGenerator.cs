@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEditor.U2D.Sprites;
 using UnityEngine;
 
 /// <summary>
@@ -94,13 +96,32 @@ internal static class PixelAnimationAtlasGenerator
         importer.textureCompression = TextureImporterCompression.Uncompressed;
         importer.alphaIsTransparency = true;
         importer.npotScale = TextureImporterNPOTScale.None;
-        importer.spritesheet = CreateSpriteMetadata(prefix);
         importer.SaveAndReimport();
+
+        ApplySpriteSlices(assetPath, prefix);
     }
 
-    private static SpriteMetaData[] CreateSpriteMetadata(string prefix)
+    private static void ApplySpriteSlices(string assetPath, string prefix)
     {
-        SpriteMetaData[] metadata = new SpriteMetaData[StateCount * DirectionCount * FrameCount];
+        TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+        if (importer == null)
+        {
+            Debug.LogError("Не удалось получить Sprite importer после настройки атласа: " + assetPath);
+            return;
+        }
+
+        SpriteDataProviderFactories factory = new SpriteDataProviderFactories();
+        factory.Init();
+        ISpriteEditorDataProvider dataProvider = factory.GetSpriteEditorDataProviderFromObject(importer);
+        if (dataProvider == null)
+        {
+            Debug.LogError("Unity не предоставил Sprite Editor Data Provider для атласа: " + assetPath);
+            return;
+        }
+
+        dataProvider.InitSpriteEditorDataProvider();
+        SpriteRect[] spriteRects = new SpriteRect[StateCount * DirectionCount * FrameCount];
+        List<SpriteNameFileIdPair> nameFileIds = new List<SpriteNameFileIdPair>(spriteRects.Length);
         int index = 0;
 
         for (int state = 0; state < StateCount; state++)
@@ -110,18 +131,29 @@ internal static class PixelAnimationAtlasGenerator
                 int row = state * DirectionCount + direction;
                 for (int frame = 0; frame < FrameCount; frame++)
                 {
-                    metadata[index++] = new SpriteMetaData
+                    string spriteName = prefix + "_" + States[state] + "_" + Directions[direction] + "_" + frame.ToString("00");
+                    GUID spriteId = GUID.Generate();
+                    SpriteRect spriteRect = new SpriteRect
                     {
-                        name = prefix + "_" + States[state] + "_" + Directions[direction] + "_" + frame.ToString("00"),
+                        name = spriteName,
+                        spriteID = spriteId,
                         rect = new Rect(frame * CellSize, AtlasHeight - (row + 1) * CellSize, CellSize, CellSize),
-                        alignment = (int)SpriteAlignment.Center,
+                        alignment = SpriteAlignment.Center,
                         pivot = new Vector2(0.5f, 0.5f)
                     };
+                    spriteRects[index++] = spriteRect;
+                    nameFileIds.Add(new SpriteNameFileIdPair(spriteName, spriteId));
                 }
             }
         }
 
-        return metadata;
+        dataProvider.SetSpriteRects(spriteRects);
+        ISpriteNameFileIdDataProvider nameFileIdProvider = dataProvider.GetDataProvider<ISpriteNameFileIdDataProvider>();
+        if (nameFileIdProvider != null)
+            nameFileIdProvider.SetNameFileIdPairs(nameFileIds.ToArray());
+
+        dataProvider.Apply();
+        importer.SaveAndReimport();
     }
 
     private static Color32[] BuildAtlas(string prefix)
