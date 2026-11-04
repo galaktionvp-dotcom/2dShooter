@@ -65,7 +65,9 @@ internal static class PixelAnimationAtlasGenerator
         TextureImporter currentImporter = AssetImporter.GetAtPath(assetPath) as TextureImporter;
 
         if (!force && File.Exists(absolutePath) && currentImporter != null &&
-            currentImporter.spriteImportMode == SpriteImportMode.Multiple)
+            currentImporter.spriteImportMode == SpriteImportMode.Multiple &&
+            currentImporter.maxTextureSize >= 16384 &&
+            currentImporter.filterMode == FilterMode.Point)
             return;
 
         Color32[] atlasPixels = BuildAtlas(prefix);
@@ -91,6 +93,7 @@ internal static class PixelAnimationAtlasGenerator
         importer.textureType = TextureImporterType.Sprite;
         importer.spriteImportMode = SpriteImportMode.Multiple;
         importer.spritePixelsPerUnit = CellSize;
+        importer.maxTextureSize = 16384;
         importer.filterMode = FilterMode.Point;
         importer.mipmapEnabled = false;
         importer.textureCompression = TextureImporterCompression.Uncompressed;
