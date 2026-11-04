@@ -55,6 +55,8 @@ public sealed class DirectionalSpriteAnimator : MonoBehaviour
     private Rigidbody2D body;
     private SpriteRenderer spriteRenderer;
     private bool isReloading;
+    private Vector2 facingDirection = Vector2.right;
+    private bool hasFacingDirection;
     private bool isDead;
     private float reloadStartedAt;
     private float reloadDuration;
@@ -173,11 +175,26 @@ public sealed class DirectionalSpriteAnimator : MonoBehaviour
 
     private int GetDirectionIndex()
     {
-        float angle = transform.eulerAngles.z;
+        float angle = hasFacingDirection
+            ? Mathf.Atan2(facingDirection.y, facingDirection.x) * Mathf.Rad2Deg
+            : transform.eulerAngles.z;
+
         int index = Mathf.RoundToInt(-(angle + 90f) / 45f);
         index %= DirectionNames.Length;
         if (index < 0) index += DirectionNames.Length;
         return index;
+    }
+
+    /// <summary>
+    /// Sets an animation-only facing direction without rotating the physics body or collider.
+    /// </summary>
+    public void SetFacingDirection(Vector2 direction)
+    {
+        if (direction.sqrMagnitude <= 0.001f)
+            return;
+
+        facingDirection = direction.normalized;
+        hasFacingDirection = true;
     }
 
     private void SetFrame(string state, int frame)
