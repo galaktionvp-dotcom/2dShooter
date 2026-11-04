@@ -40,6 +40,7 @@ public class PlayerHealth : MonoBehaviour
     private SpriteRenderer[] spriteRenderers;
     private Color[] originalColors;
     private Coroutine hitFeedbackRoutine;
+    private DirectionalSpriteAnimator characterAnimator;
 
     public float CurrentHealth => currentHealth;
     public float MaxHealth => maxHealth;
@@ -57,6 +58,7 @@ public class PlayerHealth : MonoBehaviour
 
         currentHealth = maxHealth;
         body = GetComponent<Rigidbody2D>();
+        characterAnimator = GetComponent<DirectionalSpriteAnimator>();
         spriteRenderers = GetComponentsInChildren<SpriteRenderer>(true);
         originalColors = new Color[spriteRenderers.Length];
 
@@ -81,6 +83,7 @@ public class PlayerHealth : MonoBehaviour
 
     private void PlayHitFeedback()
     {
+        characterAnimator?.PlayHit();
         if (spriteRenderers.Length == 0)
             return;
 
@@ -209,6 +212,7 @@ public class PlayerHealth : MonoBehaviour
             return;
 
         isDead = true;
+        characterAnimator?.PlayDeath();
         RestoreOriginalColors();
 
         PlayerMovement movement = GetComponent<PlayerMovement>();

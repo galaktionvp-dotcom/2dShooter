@@ -23,6 +23,7 @@ public class EnemyWeapon : MonoBehaviour
 
     private EnemyHealth health;
     private PlayerHealth player;
+    private DirectionalSpriteAnimator characterAnimator;
     private float nextShot;
     private int shotsInBurst;
     public bool IsFiring { get; private set; }
@@ -32,6 +33,7 @@ public class EnemyWeapon : MonoBehaviour
     private void Awake()
     {
         health = GetComponent<EnemyHealth>();
+        characterAnimator = GetComponent<DirectionalSpriteAnimator>();
         if (target == null)
         {
             player = FindFirstObjectByType<PlayerHealth>();
@@ -52,6 +54,12 @@ public class EnemyWeapon : MonoBehaviour
         }
 
         Vector2 aim = (Vector2)target.position - (Vector2)transform.position;
+        if (IsReloading)
+        {
+            if (Time.time < nextShot) return;
+            IsReloading = false;
+            characterAnimator?.FinishReload();
+        }
         if (aim.magnitude > attackRange || Time.time < nextShot) return;
 
         if (shotsInBurst >= Mathf.Max(1, burstSize))
@@ -59,6 +67,7 @@ public class EnemyWeapon : MonoBehaviour
             shotsInBurst = 0;
             IsReloading = true;
             nextShot = Time.time + burstPause;
+            characterAnimator?.BeginReload(burstPause);
             return;
         }
 
@@ -67,6 +76,7 @@ public class EnemyWeapon : MonoBehaviour
         shotsInBurst++;
         IsFiring = true;
         LastShotTime = Time.time;
+        characterAnimator?.PlayShoot();
         aim = Quaternion.Euler(0, 0, Random.Range(-spreadDegrees, spreadDegrees)) * aim.normalized;
 
         GameObject shot = new GameObject("EnemyBullet");
