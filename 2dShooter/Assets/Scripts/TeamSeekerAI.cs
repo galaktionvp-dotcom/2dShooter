@@ -78,7 +78,7 @@ public sealed class TeamSeekerAI : MonoBehaviour
         if (body == null || member == null)
             return;
 
-        Vector2 destination;
+        Vector2 destination = body.position;
         bool hasDestination = false;
 
         if (currentTarget != null && currentTarget.isActiveAndEnabled)
