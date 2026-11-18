@@ -273,6 +273,9 @@ MonoBehaviour:
   smoothTime: 0.12
   lookAheadDistance: 2
   lookAheadSmoothTime: 0.15
+  constrainToBounds: 1
+  boundsMin: {x: -15, y: -10}
+  boundsMax: {x: 15, y: 10}
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -368,7 +371,7 @@ GameObject:
   - component: {fileID: 1122745463}
   - component: {fileID: 1122745462}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: ArenaMap
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -389,8 +392,11 @@ MonoBehaviour:
   width: 30
   height: 20
   wallThickness: 1
-  floorColor: {r: 0.18, g: 0.18, b: 0.18, a: 1}
-  wallColor: {r: 0.08, g: 0.08, b: 0.08, a: 1}
+  floorColor: {r: 0.18, g: 0.22, b: 0.23, a: 1}
+  wallColor: {r: 0.06, g: 0.09, b: 0.1, a: 1}
+  playerZoneColor: {r: 0.18, g: 0.55, b: 0.72, a: 0.65}
+  enemyZoneColor: {r: 0.72, g: 0.3, b: 0.18, a: 0.65}
+  autoGenerateWhenMissing: 1
 --- !u!4 &1122745463
 Transform:
   m_ObjectHideFlags: 0
@@ -400,7 +406,7 @@ Transform:
   m_GameObject: {fileID: 1122745461}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.060504153, y: -0.7409988, z: 0.0024030958}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -539,7 +545,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!114 &1211643799
 MonoBehaviour:
@@ -893,7 +899,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 4
 --- !u!1 &3000000000
 GameObject:
@@ -1074,7 +1080,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 1
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!61 &4100000004
 BoxCollider2D:
@@ -1144,13 +1150,13 @@ MonoBehaviour:
   attackDamage: 1
   targetRefreshInterval: 0.25
   searchRadius: 16
-    preferredDistance: 4.2
-    retreatDistance: 2
-    strafeStrength: 0.8
-    strafeChangeInterval: 2.2
-    separationRadius: 1.1
-    separationStrength: 1.2
-    targetSwitchBuffer: 1.25
+  preferredDistance: 4.2
+  retreatDistance: 2
+  strafeStrength: 0.8
+  strafeChangeInterval: 2.2
+  separationRadius: 1.1
+  separationStrength: 1.2
+  targetSwitchBuffer: 1.25
   projectile: {fileID: 4300000005}
   showAttackRange: 0
 --- !u!114 &4100000006
@@ -1286,7 +1292,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 1
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!61 &4200000004
 BoxCollider2D:
@@ -1356,13 +1362,13 @@ MonoBehaviour:
   attackDamage: 1
   targetRefreshInterval: 0.25
   searchRadius: 16
-    preferredDistance: 4.2
-    retreatDistance: 2
-    strafeStrength: 0.8
-    strafeChangeInterval: 2.2
-    separationRadius: 1.1
-    separationStrength: 1.2
-    targetSwitchBuffer: 1.25
+  preferredDistance: 4.2
+  retreatDistance: 2
+  strafeStrength: 0.8
+  strafeChangeInterval: 2.2
+  separationRadius: 1.1
+  separationStrength: 1.2
+  targetSwitchBuffer: 1.25
   projectile: {fileID: 4400000005}
   showAttackRange: 0
 --- !u!114 &4200000006
@@ -1814,7 +1820,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 1
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!61 &5100000004
 BoxCollider2D:
@@ -1903,13 +1909,13 @@ MonoBehaviour:
   projectile: {fileID: 5300000005}
   targetRefreshInterval: 0.25
   searchRadius: 16
-    preferredDistance: 4
-    retreatDistance: 1.9
-    strafeStrength: 0.9
-    strafeChangeInterval: 2
-    separationRadius: 1.1
-    separationStrength: 1.2
-    targetSwitchBuffer: 1.25
+  preferredDistance: 4
+  retreatDistance: 1.9
+  strafeStrength: 0.9
+  strafeChangeInterval: 2
+  separationRadius: 1.1
+  separationStrength: 1.2
+  targetSwitchBuffer: 1.25
   showAttackRange: 0
 --- !u!1 &5200000000
 GameObject:
@@ -2021,7 +2027,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 1
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 0
 --- !u!61 &5200000004
 BoxCollider2D:
@@ -2110,13 +2116,13 @@ MonoBehaviour:
   projectile: {fileID: 5400000005}
   targetRefreshInterval: 0.25
   searchRadius: 16
-    preferredDistance: 4
-    retreatDistance: 1.9
-    strafeStrength: 0.9
-    strafeChangeInterval: 2
-    separationRadius: 1.1
-    separationStrength: 1.2
-    targetSwitchBuffer: 1.25
+  preferredDistance: 4
+  retreatDistance: 1.9
+  strafeStrength: 0.9
+  strafeChangeInterval: 2
+  separationRadius: 1.1
+  separationStrength: 1.2
+  targetSwitchBuffer: 1.25
   showAttackRange: 0
 --- !u!1 &5300000000
 GameObject:
