@@ -167,8 +167,15 @@ public sealed class LootSceneSetup : MonoBehaviour
 
         LootPickup pickup = Undo.AddComponent<LootPickup>(item);
         pickup.Configure(itemType);
+        EditorUtility.SetDirty(pickup);
 
-        CircleCollider2D pickupCollider = Undo.AddComponent<CircleCollider2D>(item);
+        // LootPickup требует CircleCollider2D, поэтому Unity может добавить его
+        // автоматически при добавлении компонента. Используем этот коллайдер,
+        // чтобы не создавать второй.
+        CircleCollider2D pickupCollider = item.GetComponent<CircleCollider2D>();
+        if (pickupCollider == null)
+            pickupCollider = Undo.AddComponent<CircleCollider2D>(item);
+
         pickupCollider.isTrigger = true;
         pickupCollider.radius = interactionColliderRadius;
 
