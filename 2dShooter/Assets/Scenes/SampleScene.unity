@@ -370,6 +370,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1122745463}
   - component: {fileID: 1122745462}
+  - component: {fileID: 1122745464}
   m_Layer: 0
   m_Name: ArenaMap
   m_TagString: Untagged
@@ -397,6 +398,29 @@ MonoBehaviour:
   playerZoneColor: {r: 0.18, g: 0.55, b: 0.72, a: 0.65}
   enemyZoneColor: {r: 0.72, g: 0.3, b: 0.18, a: 0.65}
   autoGenerateWhenMissing: 1
+--- !u!114 &1122745464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1122745461}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e3a7b1c5d8f4a2e9c6b3d7f1a5e8c20, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  autoGenerateWhenMissing: 1
+  gazyavaPositions:
+  - {x: -10, y: 6}
+  - {x: -10, y: -6}
+  - {x: -5, y: 6}
+  khrumkiPositions:
+  - {x: 10, y: 6}
+  - {x: 10, y: -6}
+  - {x: 5, y: -6}
+  gazyavaColor: {r: 0.1, g: 0.72, b: 0.88, a: 1}
+  khrumkiColor: {r: 0.95, g: 0.48, b: 0.12, a: 1}
 --- !u!4 &1122745463
 Transform:
   m_ObjectHideFlags: 0
@@ -427,6 +451,7 @@ GameObject:
   - component: {fileID: 1211643800}
   - component: {fileID: 1211643801}
   - component: {fileID: 1211643802}
+  - component: {fileID: 1211643803}
   m_Layer: 0
   m_Name: player
   m_TagString: Untagged
@@ -654,6 +679,20 @@ MonoBehaviour:
   hudPositionY: 20
   hudWidth: 230
   hudHeight: 14
+--- !u!114 &1211643803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1211643794}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d2e9c3b5a7f4d1e8c6b2a9f3d5e7c10, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  interactionRadius: 1.5
+  collectionDuration: 2.5
 --- !u!1 &2000000000
 GameObject:
   m_ObjectHideFlags: 0
