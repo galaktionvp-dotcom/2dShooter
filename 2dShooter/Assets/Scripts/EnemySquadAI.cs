@@ -34,6 +34,31 @@ public sealed class EnemySquadAI : MonoBehaviour
     [InspectorLabel("Частота поиска цели", "Как часто боец ищет ближайшего игрока или союзника.")]
     [SerializeField, Min(0.05f)] private float targetRefreshInterval = 0.25f;
 
+    [Header("Поиск и тактика в бою")]
+    [InspectorLabel("Радиус поиска", "Дистанция обнаружения игрока и союзников игрока. Боец замечает цель раньше, чем сможет выстрелить.")]
+    [SerializeField, Min(1f)] private float searchRadius = 16f;
+
+    [InspectorLabel("Предпочтительная дистанция", "Расстояние, которое боец старается держать до цели во время перестрелки.")]
+    [SerializeField, Min(0.5f)] private float preferredDistance = 4f;
+
+    [InspectorLabel("Дистанция отхода", "Если противник подходит ближе этого значения, боец отступает.")]
+    [SerializeField, Min(0.2f)] private float retreatDistance = 1.9f;
+
+    [InspectorLabel("Сила обхода", "Насколько активно боец двигается по дуге вокруг цели вместо неподвижного стояния.")]
+    [SerializeField, Range(0f, 1.5f)] private float strafeStrength = 0.9f;
+
+    [InspectorLabel("Интервал смены стороны", "Как часто боец меняет направление обхода цели.")]
+    [SerializeField, Min(0.3f)] private float strafeChangeInterval = 2f;
+
+    [InspectorLabel("Дистанция раздвижения", "Помогает бойцам не стоять вплотную друг к другу.")]
+    [SerializeField, Min(0f)] private float separationRadius = 1.1f;
+
+    [InspectorLabel("Сила раздвижения", "Насколько сильно боец отходит от других бойцов своей команды.")]
+    [SerializeField, Min(0f)] private float separationStrength = 1.2f;
+
+    [InspectorLabel("Запас удержания цели", "Боец не переключается на другого противника из-за небольшой разницы в расстоянии.")]
+    [SerializeField, Min(0f)] private float targetSwitchBuffer = 1.25f;
+
     [InspectorLabel("Показывать дальность атаки", "Рисует радиус атаки в окне Scene, когда объект выделен.")]
     [SerializeField] private bool showAttackRange;
 
@@ -45,6 +70,9 @@ public sealed class EnemySquadAI : MonoBehaviour
     private float nextTargetRefreshTime;
     private float nextShotTime;
     private float desiredRotation;
+    private EnemyHealth[] friendlyEnemies;
+    private float nextStrafeChangeTime;
+    private float strafeDirection = 1f;
 
     private void Awake()
     {
@@ -72,8 +100,17 @@ public sealed class EnemySquadAI : MonoBehaviour
         followSpeed = Mathf.Max(0f, followSpeed);
         acceleration = Mathf.Max(0.1f, acceleration);
         targetRefreshInterval = Mathf.Max(0.05f, targetRefreshInterval);
+        searchRadius = Mathf.Max(1f, searchRadius);
+        preferredDistance = Mathf.Max(0.5f, preferredDistance);
+        retreatDistance = Mathf.Clamp(retreatDistance, 0.2f, preferredDistance);
+        strafeChangeInterval = Mathf.Max(0.3f, strafeChangeInterval);
+        separationRadius = Mathf.Max(0f, separationRadius);
+        separationStrength = Mathf.Max(0f, separationStrength);
+        targetSwitchBuffer = Mathf.Max(0f, targetSwitchBuffer);
 
         RefreshFriendlyTargets();
+        strafeDirection = (GetInstanceID() & 1) == 0 ? 1f : -1f;
+        nextStrafeChangeTime = Time.time + Random.Range(0.8f, strafeChangeInterval);
         desiredRotation = body.rotation;
     }
 
@@ -94,14 +131,11 @@ public sealed class EnemySquadAI : MonoBehaviour
         Vector2 direction = (Vector2)currentTarget.position - body.position;
         float distance = direction.magnitude;
 
-        if (distance > attackRange || !HasClearShot(currentTarget))
-        {
-            currentTarget = null;
-            return;
-        }
-
         if (direction.sqrMagnitude > 0.001f)
             desiredRotation = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+
+        if (distance > attackRange || !HasClearShot(currentTarget))
+            return;
 
         if (Time.time >= nextShotTime && !projectile.IsTravelling)
         {
@@ -123,33 +157,57 @@ public sealed class EnemySquadAI : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (body == null)
+        if (body == null || (health != null && health.IsDead))
             return;
 
-        bool holdingPosition =
-            currentTarget != null &&
-            IsTargetAlive(currentTarget) &&
-            Vector2.Distance(body.position, currentTarget.position) <= attackRange;
+        if (Time.time >= nextStrafeChangeTime)
+        {
+            strafeDirection *= -1f;
+            nextStrafeChangeTime = Time.time + Random.Range(
+                strafeChangeInterval * 0.65f,
+                strafeChangeInterval * 1.35f);
+        }
 
         Vector2 desiredVelocity = Vector2.zero;
 
-        if (!holdingPosition)
+        if (currentTarget != null && IsTargetAlive(currentTarget))
         {
-            Vector2 destination;
+            Vector2 toTarget = (Vector2)currentTarget.position - body.position;
+            float distance = toTarget.magnitude;
 
-            if (leaderTarget != null)
+            if (distance > 0.05f)
             {
-                destination = (Vector2)leaderTarget.position + followOffset;
-            }
-            else
-            {
-                if (player == null)
-                    player = FindFirstObjectByType<PlayerHealth>();
+                Vector2 toward = toTarget / distance;
+                Vector2 tangent = new Vector2(-toward.y, toward.x) * strafeDirection;
+                float radialStrength = Mathf.Clamp(
+                    (distance - preferredDistance) / 1.4f,
+                    -1f,
+                    1f);
 
-                destination = player != null
-                    ? (Vector2)player.transform.position
-                    : body.position;
+                float orbitStrength = distance > attackRange
+                    ? strafeStrength * 0.3f
+                    : strafeStrength;
+
+                if (distance < retreatDistance)
+                    radialStrength = -1f;
+
+                Vector2 movementDirection = toward * radialStrength + tangent * orbitStrength;
+                if (movementDirection.sqrMagnitude > 0.001f)
+                    desiredVelocity = movementDirection.normalized * followSpeed;
             }
+        }
+        else
+        {
+            if (leaderTarget == null)
+            {
+                EnemyAI leader = FindFirstObjectByType<EnemyAI>();
+                if (leader != null && leader.transform != transform)
+                    leaderTarget = leader.transform;
+            }
+
+            Vector2 destination = leaderTarget != null
+                ? (Vector2)leaderTarget.position + followOffset
+                : player != null ? (Vector2)player.transform.position : body.position;
 
             Vector2 toDestination = destination - body.position;
             if (toDestination.magnitude > 0.3f)
@@ -158,6 +216,9 @@ public sealed class EnemySquadAI : MonoBehaviour
                 desiredRotation = Mathf.Atan2(toDestination.y, toDestination.x) * Mathf.Rad2Deg;
             }
         }
+
+        desiredVelocity += CalculateSeparation() * separationStrength;
+        desiredVelocity = Vector2.ClampMagnitude(desiredVelocity, followSpeed);
 
         body.linearVelocity = Vector2.MoveTowards(
             body.linearVelocity,
@@ -170,12 +231,38 @@ public sealed class EnemySquadAI : MonoBehaviour
             720f * Time.fixedDeltaTime));
     }
 
+    private Vector2 CalculateSeparation()
+    {
+        if (friendlyEnemies == null || separationRadius <= 0f)
+            return Vector2.zero;
+
+        Vector2 separation = Vector2.zero;
+        int neighbours = 0;
+
+        for (int i = 0; i < friendlyEnemies.Length; i++)
+        {
+            EnemyHealth other = friendlyEnemies[i];
+            if (other == null || other == health || other.IsDead)
+                continue;
+
+            Vector2 offset = body.position - (Vector2)other.transform.position;
+            float distance = offset.magnitude;
+            if (distance <= 0.001f || distance >= separationRadius)
+                continue;
+
+            separation += offset / distance * (1f - distance / separationRadius);
+            neighbours++;
+        }
+
+        return neighbours > 0 ? separation / neighbours : Vector2.zero;
+    }
+
     private void FindBestTarget()
     {
         RefreshFriendlyTargets();
 
         Transform bestTarget = null;
-        float bestDistance = attackRange;
+        float bestDistance = searchRadius;
 
         if (player != null && !player.IsDead)
             ConsiderTarget(player.transform, ref bestTarget, ref bestDistance);
@@ -189,6 +276,16 @@ public sealed class EnemySquadAI : MonoBehaviour
             ConsiderTarget(ally.transform, ref bestTarget, ref bestDistance);
         }
 
+        if (currentTarget != null && IsTargetAlive(currentTarget))
+        {
+            float currentDistance = Vector2.Distance(body.position, currentTarget.position);
+            if (currentDistance <= searchRadius * 1.35f &&
+                (bestTarget == null || currentDistance <= bestDistance + targetSwitchBuffer))
+            {
+                bestTarget = currentTarget;
+            }
+        }
+
         currentTarget = bestTarget;
     }
 
@@ -198,6 +295,7 @@ public sealed class EnemySquadAI : MonoBehaviour
             player = FindFirstObjectByType<PlayerHealth>();
 
         allies = FindObjectsByType<AllyHealth>(FindObjectsSortMode.None);
+        friendlyEnemies = FindObjectsByType<EnemyHealth>(FindObjectsSortMode.None);
     }
 
     private void ConsiderTarget(
@@ -209,7 +307,7 @@ public sealed class EnemySquadAI : MonoBehaviour
             return;
 
         float distance = Vector2.Distance(body.position, candidate.position);
-        if (distance > bestDistance || !HasClearShot(candidate))
+        if (distance > bestDistance)
             return;
 
         bestDistance = distance;
