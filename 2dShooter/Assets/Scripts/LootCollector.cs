@@ -48,6 +48,13 @@ public sealed class LootCollector : MonoBehaviour
             return;
         }
 
+        bool isHoldingKey = Keyboard.current != null && Keyboard.current.eKey.isPressed;
+
+        // Release is processed even when no pickup is currently in range.
+        // Otherwise the player could remain locked out after collecting an isolated item.
+        if (!isHoldingKey)
+            mustReleaseKey = false;
+
         LootPickup nearestItem = FindNearestItem();
 
         if (nearestItem != currentTarget)
@@ -62,12 +69,9 @@ public sealed class LootCollector : MonoBehaviour
             return;
         }
 
-        bool isHoldingKey = Keyboard.current != null && Keyboard.current.eKey.isPressed;
-
         if (!isHoldingKey)
         {
             collectionProgress = 0f;
-            mustReleaseKey = false;
             return;
         }
 
