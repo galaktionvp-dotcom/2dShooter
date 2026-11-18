@@ -48,6 +48,15 @@ public sealed class LootCollector : MonoBehaviour
             return;
         }
 
+        bool isHoldingKey = Keyboard.current != null && Keyboard.current.eKey.isPressed;
+
+        // Сбрасываем блокировку даже тогда, когда рядом сейчас нет предмета.
+        if (!isHoldingKey)
+        {
+            collectionProgress = 0f;
+            mustReleaseKey = false;
+        }
+
         LootPickup nearestItem = FindNearestItem();
 
         if (nearestItem != currentTarget)
@@ -62,14 +71,8 @@ public sealed class LootCollector : MonoBehaviour
             return;
         }
 
-        bool isHoldingKey = Keyboard.current != null && Keyboard.current.eKey.isPressed;
-
         if (!isHoldingKey)
-        {
-            collectionProgress = 0f;
-            mustReleaseKey = false;
             return;
-        }
 
         // После сбора нужно отпустить E, чтобы случайно не подобрать следующий предмет.
         if (mustReleaseKey)
