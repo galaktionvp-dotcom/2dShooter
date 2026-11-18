@@ -33,6 +33,7 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
     private Sprite[] runFrames;
     private Vector3 baseLocalPosition;
     private float animationTime;
+    private bool visualIsCharacterRoot;
 
     private void Awake()
     {
@@ -60,13 +61,14 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
             return;
         }
 
+        visualIsCharacterRoot = visualRoot == transform;
         idleSprite = spriteRenderer.sprite;
         idleColor = spriteRenderer.color;
-        baseLocalPosition = visualRoot.localPosition;
+        baseLocalPosition = visualIsCharacterRoot ? Vector3.zero : visualRoot.localPosition;
 
         runFrameRate = Mathf.Clamp(runFrameRate, 4f, 18f);
         movementThreshold = Mathf.Max(0f, movementThreshold);
-        bobAmount = Mathf.Max(0f, bobAmount);
+        bobAmount = visualIsCharacterRoot ? 0f : Mathf.Max(0f, bobAmount);
 
         BuildRunFrames();
     }
@@ -125,8 +127,11 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
                 spriteRenderer.sprite = idleSprite;
             spriteRenderer.color = idleColor;
 
-            float restoreBlend = 1f - Mathf.Exp(-15f * Time.deltaTime);
-            visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, baseLocalPosition, restoreBlend);
+            if (!visualIsCharacterRoot)
+            {
+                float restoreBlend = 1f - Mathf.Exp(-15f * Time.deltaTime);
+                visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, baseLocalPosition, restoreBlend);
+            }
             return;
         }
 
@@ -139,10 +144,13 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
             spriteRenderer.sprite = runFrames[frameIndex];
         spriteRenderer.color = runningTint;
 
-        float phase = (animationTime / RunFrameCount) * Mathf.PI * 2f;
-        Vector3 targetPosition = baseLocalPosition + Vector3.up * (Mathf.Abs(Mathf.Sin(phase)) * bobAmount);
-        float blend = 1f - Mathf.Exp(-20f * Time.deltaTime);
-        visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, targetPosition, blend);
+        if (!visualIsCharacterRoot && bobAmount > 0f)
+        {
+            float phase = (animationTime / RunFrameCount) * Mathf.PI * 2f;
+            Vector3 targetPosition = baseLocalPosition + Vector3.up * (Mathf.Abs(Mathf.Sin(phase)) * bobAmount);
+            float blend = 1f - Mathf.Exp(-20f * Time.deltaTime);
+            visualRoot.localPosition = Vector3.Lerp(visualRoot.localPosition, targetPosition, blend);
+        }
     }
 
     private void OnDisable()
@@ -164,7 +172,7 @@ public sealed class CharacterMotionFeedback : MonoBehaviour
             spriteRenderer.color = idleColor;
         }
 
-        if (visualRoot != null)
+        if (!visualIsCharacterRoot && visualRoot != null)
             visualRoot.localPosition = baseLocalPosition;
     }
 
