@@ -32,12 +32,14 @@ public class EnemyAI : MonoBehaviour
     private Rigidbody2D body;
     private EnemyHealth enemyHealth;
     private PlayerHealth targetHealth;
+    private TopDownMapGenerator arena;
     private bool isChasing;
 
     private void Awake()
     {
         body = GetComponent<Rigidbody2D>();
         enemyHealth = GetComponent<EnemyHealth>();
+        arena = FindFirstObjectByType<TopDownMapGenerator>();
 
         detectionRadius = Mathf.Max(0.5f, detectionRadius);
         chaseSpeed = Mathf.Max(0f, chaseSpeed);
@@ -55,7 +57,7 @@ public class EnemyAI : MonoBehaviour
 
         if (enemyHealth != null && enemyHealth.IsDead)
         {
-            StopMoving();
+            ApplyMovement(Vector2.zero);
             return;
         }
 
@@ -65,14 +67,14 @@ public class EnemyAI : MonoBehaviour
         if (target == null || (targetHealth != null && targetHealth.IsDead))
         {
             isChasing = false;
-            StopMoving();
+            ApplyMovement(Vector2.zero);
             return;
         }
 
         Vector2 toTarget = (Vector2)target.position - body.position;
         float distance = toTarget.magnitude;
 
-        // Враг запоминает цель, пока игрок не оторвётся достаточно далеко.
+        // Небольшой запас удержания цели не даёт состоянию погони включаться и выключаться на границе радиуса.
         if (isChasing)
         {
             if (distance > loseTargetDistance)
@@ -85,16 +87,18 @@ public class EnemyAI : MonoBehaviour
 
         if (!isChasing || distance <= stoppingDistance || chaseSpeed <= 0f)
         {
-            StopMoving();
+            ApplyMovement(Vector2.zero);
             return;
         }
 
-        Vector2 desiredVelocity = toTarget.normalized * chaseSpeed;
-        body.linearVelocity = Vector2.MoveTowards(
-            body.linearVelocity,
-            desiredVelocity,
-            acceleration * Time.fixedDeltaTime
-        );
+        // Плавное торможение перед целью предотвращает перелёты и бесконечные развороты вокруг неё.
+        float remainingDistance = Mathf.Max(0f, distance - stoppingDistance);
+        float desiredSpeed = Mathf.Min(
+            chaseSpeed,
+            Mathf.Sqrt(2f * acceleration * remainingDistance));
+
+        Vector2 desiredVelocity = toTarget.normalized * desiredSpeed;
+        ApplyMovement(desiredVelocity);
     }
 
     private void ResolveTarget()
@@ -113,14 +117,33 @@ public class EnemyAI : MonoBehaviour
 
     private void StopMoving()
     {
+        ApplyMovement(Vector2.zero);
+    }
+
+    private void ApplyMovement(Vector2 desiredVelocity)
+    {
         if (body == null)
             return;
 
-        body.linearVelocity = Vector2.MoveTowards(
+        Vector2 nextVelocity = Vector2.MoveTowards(
             body.linearVelocity,
-            Vector2.zero,
-            acceleration * Time.fixedDeltaTime
-        );
+            desiredVelocity,
+            acceleration * Time.fixedDeltaTime);
+
+        if (arena == null)
+            arena = FindFirstObjectByType<TopDownMapGenerator>();
+
+        if (arena != null)
+        {
+            nextVelocity = arena.ConstrainMovementVelocity(
+                body.position,
+                nextVelocity,
+                Mathf.Max(0.01f, chaseSpeed),
+                Time.fixedDeltaTime,
+                0.7f);
+        }
+
+        body.linearVelocity = nextVelocity;
     }
 
 #if UNITY_EDITOR
