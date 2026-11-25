@@ -29,6 +29,7 @@ public sealed class LootCollector : MonoBehaviour
 
     public int GazyavaCount => gazyavaCount;
     public int KhrumkiCount => khrumkiCount;
+    public int TotalLootCount => gazyavaCount + khrumkiCount;
     public bool IsCollecting => currentTarget != null && collectionProgress > 0f;
 
     private void Awake()
