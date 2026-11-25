@@ -115,11 +115,6 @@ public class EnemyAI : MonoBehaviour
             : null;
     }
 
-    private void StopMoving()
-    {
-        ApplyMovement(Vector2.zero);
-    }
-
     private void ApplyMovement(Vector2 desiredVelocity)
     {
         if (body == null)
