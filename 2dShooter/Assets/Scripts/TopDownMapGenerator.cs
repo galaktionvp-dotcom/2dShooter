@@ -41,6 +41,82 @@ public sealed class TopDownMapGenerator : MonoBehaviour
     [InspectorLabel("Создавать карту, если её нет", "Если включено, карта автоматически создаётся один раз при открытии сцены в Unity Editor. Создание выполняется только в режиме редактирования, не во время игры.")]
     [SerializeField] private bool autoGenerateWhenMissing = true;
 
+
+    /// <summary>
+    /// Keeps NPC destinations and velocity inside the authored arena.
+    /// This only steers existing Rigidbody2D objects; it creates nothing at runtime.
+    /// </summary>
+    public Vector2 ClampMovementDestination(Vector2 worldPosition, float padding = 0.65f)
+    {
+        Vector3 localPosition = transform.InverseTransformPoint(
+            new Vector3(worldPosition.x, worldPosition.y, transform.position.z));
+
+        float inset = Mathf.Max(0f, wallThickness * 0.5f) + Mathf.Max(0f, padding);
+        float halfWidth = Mathf.Max(0.1f, width * 0.5f - inset);
+        float halfHeight = Mathf.Max(0.1f, height * 0.5f - inset);
+
+        localPosition.x = Mathf.Clamp(localPosition.x, -halfWidth, halfWidth);
+        localPosition.y = Mathf.Clamp(localPosition.y, -halfHeight, halfHeight);
+
+        Vector3 clampedWorld = transform.TransformPoint(localPosition);
+        return new Vector2(clampedWorld.x, clampedWorld.y);
+    }
+
+    /// <summary>
+    /// Prevents an NPC from crossing the safe inner edge of the arena.
+    /// If it is already outside, it is steered back in without teleporting.
+    /// </summary>
+    public Vector2 ConstrainMovementVelocity(
+        Vector2 worldPosition,
+        Vector2 desiredVelocity,
+        float maxSpeed,
+        float deltaTime,
+        float padding = 0.65f)
+    {
+        maxSpeed = Mathf.Max(0f, maxSpeed);
+        if (maxSpeed <= 0f)
+            return Vector2.zero;
+
+        float step = Mathf.Max(0.0001f, deltaTime);
+        Vector3 localPosition = transform.InverseTransformPoint(
+            new Vector3(worldPosition.x, worldPosition.y, transform.position.z));
+        Vector3 localVelocity = transform.InverseTransformVector(
+            new Vector3(desiredVelocity.x, desiredVelocity.y, 0f));
+
+        float inset = Mathf.Max(0f, wallThickness * 0.5f) + Mathf.Max(0f, padding);
+        float halfWidth = Mathf.Max(0.1f, width * 0.5f - inset);
+        float halfHeight = Mathf.Max(0.1f, height * 0.5f - inset);
+
+        localVelocity.x = ConstrainAxis(localPosition.x, localVelocity.x, halfWidth, maxSpeed, step);
+        localVelocity.y = ConstrainAxis(localPosition.y, localVelocity.y, halfHeight, maxSpeed, step);
+
+        Vector3 worldVelocity = transform.TransformVector(localVelocity);
+        return Vector2.ClampMagnitude(new Vector2(worldVelocity.x, worldVelocity.y), maxSpeed);
+    }
+
+    private static float ConstrainAxis(
+        float position,
+        float velocity,
+        float boundary,
+        float maxSpeed,
+        float deltaTime)
+    {
+        if (position > boundary)
+            return -Mathf.Min(maxSpeed, Mathf.Max(0.8f, (position - boundary) * 4f));
+
+        if (position < -boundary)
+            return Mathf.Min(maxSpeed, Mathf.Max(0.8f, (-boundary - position) * 4f));
+
+        float predictedPosition = position + velocity * deltaTime;
+        if (predictedPosition > boundary && velocity > 0f)
+            return Mathf.Max(0f, (boundary - position) / deltaTime);
+
+        if (predictedPosition < -boundary && velocity < 0f)
+            return Mathf.Min(0f, (-boundary - position) / deltaTime);
+
+        return velocity;
+    }
+
 #if UNITY_EDITOR
     private void OnEnable()
     {
