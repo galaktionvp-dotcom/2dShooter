@@ -29,11 +29,13 @@ public sealed class EnemyEscortMovementAI : MonoBehaviour
     [SerializeField] private bool showFormationPoint;
 
     private Rigidbody2D body;
+    private TopDownMapGenerator arena;
     private float desiredRotation;
 
     private void Awake()
     {
         body = GetComponent<Rigidbody2D>();
+        arena = FindFirstObjectByType<TopDownMapGenerator>();
         moveSpeed = Mathf.Max(0f, moveSpeed);
         acceleration = Mathf.Max(0.1f, acceleration);
         stoppingDistance = Mathf.Max(0.1f, stoppingDistance);
@@ -57,12 +59,24 @@ public sealed class EnemyEscortMovementAI : MonoBehaviour
         }
 
         Vector2 destination = (Vector2)leaderTarget.position + followOffset;
+
+        if (arena == null)
+            arena = FindFirstObjectByType<TopDownMapGenerator>();
+
+        if (arena != null)
+            destination = arena.ClampMovementDestination(destination, 0.7f);
+
         Vector2 offset = destination - body.position;
         Vector2 desiredVelocity = Vector2.zero;
 
         if (offset.magnitude > stoppingDistance && moveSpeed > 0f)
         {
-            desiredVelocity = offset.normalized * moveSpeed;
+            // Плавное торможение не позволяет бойцу пролетать свою точку построения и ходить по кругу.
+            float desiredSpeed = Mathf.Min(
+                moveSpeed,
+                Mathf.Sqrt(2f * acceleration * (offset.magnitude - stoppingDistance)));
+
+            desiredVelocity = offset.normalized * desiredSpeed;
             desiredRotation = Mathf.Atan2(offset.y, offset.x) * Mathf.Rad2Deg;
         }
 
@@ -82,10 +96,25 @@ public sealed class EnemyEscortMovementAI : MonoBehaviour
 
     private void MoveTowards(Vector2 desiredVelocity)
     {
-        body.linearVelocity = Vector2.MoveTowards(
+        Vector2 nextVelocity = Vector2.MoveTowards(
             body.linearVelocity,
             desiredVelocity,
             acceleration * Time.fixedDeltaTime);
+
+        if (arena == null)
+            arena = FindFirstObjectByType<TopDownMapGenerator>();
+
+        if (arena != null)
+        {
+            nextVelocity = arena.ConstrainMovementVelocity(
+                body.position,
+                nextVelocity,
+                moveSpeed,
+                Time.fixedDeltaTime,
+                0.7f);
+        }
+
+        body.linearVelocity = nextVelocity;
     }
 
 #if UNITY_EDITOR

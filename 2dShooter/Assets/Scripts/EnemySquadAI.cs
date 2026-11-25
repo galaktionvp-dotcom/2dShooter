@@ -44,12 +44,6 @@ public sealed class EnemySquadAI : MonoBehaviour
     [InspectorLabel("Дистанция отхода", "Если противник подходит ближе этого значения, боец отступает.")]
     [SerializeField, Min(0.2f)] private float retreatDistance = 1.9f;
 
-    [InspectorLabel("Сила обхода", "Насколько активно боец двигается по дуге вокруг цели вместо неподвижного стояния.")]
-    [SerializeField, Range(0f, 1.5f)] private float strafeStrength = 0.9f;
-
-    [InspectorLabel("Интервал смены стороны", "Как часто боец меняет направление обхода цели.")]
-    [SerializeField, Min(0.3f)] private float strafeChangeInterval = 2f;
-
     [InspectorLabel("Дистанция раздвижения", "Помогает бойцам не стоять вплотную друг к другу.")]
     [SerializeField, Min(0f)] private float separationRadius = 1.1f;
 
@@ -71,13 +65,13 @@ public sealed class EnemySquadAI : MonoBehaviour
     private float nextShotTime;
     private float desiredRotation;
     private EnemyHealth[] friendlyEnemies;
-    private float nextStrafeChangeTime;
-    private float strafeDirection = 1f;
+    private TopDownMapGenerator arena;
 
     private void Awake()
     {
         body = GetComponent<Rigidbody2D>();
         health = GetComponent<EnemyHealth>();
+        arena = FindFirstObjectByType<TopDownMapGenerator>();
 
         if (leaderTarget == null)
         {
@@ -103,14 +97,11 @@ public sealed class EnemySquadAI : MonoBehaviour
         searchRadius = Mathf.Max(1f, searchRadius);
         preferredDistance = Mathf.Max(0.5f, preferredDistance);
         retreatDistance = Mathf.Clamp(retreatDistance, 0.2f, preferredDistance);
-        strafeChangeInterval = Mathf.Max(0.3f, strafeChangeInterval);
         separationRadius = Mathf.Max(0f, separationRadius);
         separationStrength = Mathf.Max(0f, separationStrength);
         targetSwitchBuffer = Mathf.Max(0f, targetSwitchBuffer);
 
         RefreshFriendlyTargets();
-        strafeDirection = (GetInstanceID() & 1) == 0 ? 1f : -1f;
-        nextStrafeChangeTime = Time.time + Random.Range(0.8f, strafeChangeInterval);
         desiredRotation = body.rotation;
     }
 
@@ -160,14 +151,6 @@ public sealed class EnemySquadAI : MonoBehaviour
         if (body == null || (health != null && health.IsDead))
             return;
 
-        if (Time.time >= nextStrafeChangeTime)
-        {
-            strafeDirection *= -1f;
-            nextStrafeChangeTime = Time.time + Random.Range(
-                strafeChangeInterval * 0.65f,
-                strafeChangeInterval * 1.35f);
-        }
-
         Vector2 desiredVelocity = Vector2.zero;
 
         if (currentTarget != null && IsTargetAlive(currentTarget))
@@ -175,25 +158,10 @@ public sealed class EnemySquadAI : MonoBehaviour
             Vector2 toTarget = (Vector2)currentTarget.position - body.position;
             float distance = toTarget.magnitude;
 
-            if (distance > 0.05f)
+            if (distance > 0.001f)
             {
-                Vector2 toward = toTarget / distance;
-                Vector2 tangent = new Vector2(-toward.y, toward.x) * strafeDirection;
-                float radialStrength = Mathf.Clamp(
-                    (distance - preferredDistance) / 1.4f,
-                    -1f,
-                    1f);
-
-                float orbitStrength = distance > attackRange
-                    ? strafeStrength * 0.3f
-                    : strafeStrength;
-
-                if (distance < retreatDistance)
-                    radialStrength = -1f;
-
-                Vector2 movementDirection = toward * radialStrength + tangent * orbitStrength;
-                if (movementDirection.sqrMagnitude > 0.001f)
-                    desiredVelocity = movementDirection.normalized * followSpeed;
+                desiredRotation = Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg;
+                desiredVelocity = CalculateStandoffVelocity(toTarget, distance);
             }
         }
         else
@@ -209,26 +177,86 @@ public sealed class EnemySquadAI : MonoBehaviour
                 ? (Vector2)leaderTarget.position + followOffset
                 : player != null ? (Vector2)player.transform.position : body.position;
 
+            if (arena == null)
+                arena = FindFirstObjectByType<TopDownMapGenerator>();
+
+            if (arena != null)
+                destination = arena.ClampMovementDestination(destination, 0.7f);
+
             Vector2 toDestination = destination - body.position;
-            if (toDestination.magnitude > 0.3f)
-            {
-                desiredVelocity = toDestination.normalized * followSpeed;
+            desiredVelocity = CalculateArriveVelocity(toDestination, 0.3f);
+
+            if (toDestination.sqrMagnitude > 0.001f)
                 desiredRotation = Mathf.Atan2(toDestination.y, toDestination.x) * Mathf.Rad2Deg;
-            }
         }
 
+        // Раздвижение работает только на короткой дистанции и не задаёт постоянную орбиту вокруг цели.
         desiredVelocity += CalculateSeparation() * separationStrength;
         desiredVelocity = Vector2.ClampMagnitude(desiredVelocity, followSpeed);
 
-        body.linearVelocity = Vector2.MoveTowards(
+        Vector2 nextVelocity = Vector2.MoveTowards(
             body.linearVelocity,
             desiredVelocity,
             acceleration * Time.fixedDeltaTime);
 
+        if (arena == null)
+            arena = FindFirstObjectByType<TopDownMapGenerator>();
+
+        if (arena != null)
+        {
+            nextVelocity = arena.ConstrainMovementVelocity(
+                body.position,
+                nextVelocity,
+                followSpeed,
+                Time.fixedDeltaTime,
+                0.7f);
+        }
+
+        body.linearVelocity = nextVelocity;
         body.MoveRotation(Mathf.MoveTowardsAngle(
             body.rotation,
             desiredRotation,
             720f * Time.fixedDeltaTime));
+    }
+
+    private Vector2 CalculateStandoffVelocity(Vector2 toTarget, float distance)
+    {
+        Vector2 toward = toTarget / distance;
+
+        if (distance < retreatDistance)
+        {
+            float retreatRatio = 1f - Mathf.Clamp01(distance / Mathf.Max(0.1f, retreatDistance));
+            float retreatSpeed = Mathf.Lerp(followSpeed * 0.45f, followSpeed, retreatRatio);
+            return -toward * retreatSpeed;
+        }
+
+        // Движение только по радиусу: когда удобная дистанция достигнута, боец останавливается,
+        // а не продолжает бесконечно кружить вокруг одной и той же цели.
+        const float distanceDeadZone = 0.35f;
+        float distanceError = distance - preferredDistance;
+        float remainingError = Mathf.Abs(distanceError) - distanceDeadZone;
+
+        if (remainingError <= 0f || followSpeed <= 0f)
+            return Vector2.zero;
+
+        float desiredSpeed = Mathf.Min(
+            followSpeed,
+            Mathf.Sqrt(2f * acceleration * remainingError));
+
+        return toward * (distanceError > 0f ? desiredSpeed : -desiredSpeed);
+    }
+
+    private Vector2 CalculateArriveVelocity(Vector2 offset, float stopDistance)
+    {
+        float distance = offset.magnitude;
+        if (distance <= stopDistance || followSpeed <= 0f)
+            return Vector2.zero;
+
+        float desiredSpeed = Mathf.Min(
+            followSpeed,
+            Mathf.Sqrt(2f * acceleration * (distance - stopDistance)));
+
+        return offset / distance * desiredSpeed;
     }
 
     private Vector2 CalculateSeparation()
