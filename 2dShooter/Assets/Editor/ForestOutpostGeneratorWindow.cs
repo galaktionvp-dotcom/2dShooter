@@ -166,6 +166,7 @@ public sealed class ForestOutpostGeneratorWindow : EditorWindow
             if (moveExistingTeams)
                 PlaceExistingTeams(scene);
 
+            UpdateCameraBounds(scene);
             EditorSceneManager.MarkSceneDirty(scene);
             Selection.activeGameObject = mapRoot.gameObject;
             SceneView.lastActiveSceneView?.FrameSelected();
@@ -374,12 +375,17 @@ public sealed class ForestOutpostGeneratorWindow : EditorWindow
         if (bench != null)
             PlacePrefab(bench, checkpoint, new Vector2(2.5f, 7.15f), 0f, 0.8f);
 
-        PlacePrefab(crate01, barracks, new Vector2(-7.8f, 5.2f), 0f, 1f);
-        if (crate02 != null)
-            PlacePrefab(crate02, barracks, new Vector2(-6.6f, 5.55f), 0f, 1f);
-        PlacePrefab(barrel, barracks, new Vector2(-8.4f, 4.0f), 0f, 0.9f);
+        // A compact crate enclosure gives the barracks yard visible, collidable sides.
+        PlacePrefab(crate01, barracks, new Vector2(-8.2f, 6.2f), 0f, 1f);
+        PlacePrefab(crate02 != null ? crate02 : crate01, barracks, new Vector2(-7.0f, 6.2f), 0f, 1f);
+        PlacePrefab(crate01, barracks, new Vector2(-5.8f, 6.2f), 0f, 1f);
+        PlacePrefab(crate02 != null ? crate02 : crate01, barracks, new Vector2(-8.2f, 5.1f), 0f, 1f);
+        PlacePrefab(crate01, barracks, new Vector2(-5.8f, 5.1f), 0f, 1f);
+        PlacePrefab(crate01, barracks, new Vector2(-8.2f, 4.0f), 0f, 1f);
+        PlacePrefab(crate02 != null ? crate02 : crate01, barracks, new Vector2(-5.8f, 4.0f), 0f, 1f);
+        PlacePrefab(barrel, barracks, new Vector2(-7.5f, 4.8f), 0f, 0.9f);
         if (bench != null)
-            PlacePrefab(bench, barracks, new Vector2(-5.6f, 5.0f), 90f, 0.75f);
+            PlacePrefab(bench, barracks, new Vector2(-6.2f, 4.8f), 90f, 0.75f);
 
         PlacePrefab(crate01, supply, new Vector2(6.0f, -4.2f), 0f, 1f);
         if (crate02 != null)
@@ -457,6 +463,39 @@ public sealed class ForestOutpostGeneratorWindow : EditorWindow
         int depthOffset = -Mathf.RoundToInt(position.y * 10f);
         foreach (SpriteRenderer renderer in instance.GetComponentsInChildren<SpriteRenderer>(true))
             renderer.sortingOrder += depthOffset;
+    }
+
+    private void UpdateCameraBounds(Scene scene)
+    {
+        Vector2 minimum = new Vector2(-mapWidth * 0.5f, -mapHeight * 0.5f);
+        Vector2 maximum = new Vector2(mapWidth * 0.5f, mapHeight * 0.5f);
+
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            if (!string.Equals(root.name, "Main Camera", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            foreach (MonoBehaviour component in root.GetComponents<MonoBehaviour>())
+            {
+                if (component == null)
+                    continue;
+
+                SerializedObject serializedComponent = new SerializedObject(component);
+                SerializedProperty boundsMin = serializedComponent.FindProperty("boundsMin");
+                SerializedProperty boundsMax = serializedComponent.FindProperty("boundsMax");
+
+                // Update only the project's CameraFollow component; unrelated camera scripts are left untouched.
+                if (boundsMin == null || boundsMax == null ||
+                    boundsMin.propertyType != SerializedPropertyType.Vector2 ||
+                    boundsMax.propertyType != SerializedPropertyType.Vector2)
+                    continue;
+
+                boundsMin.vector2Value = minimum;
+                boundsMax.vector2Value = maximum;
+                serializedComponent.ApplyModifiedProperties();
+                EditorUtility.SetDirty(component);
+            }
+        }
     }
 
     private static void PlaceExistingTeams(Scene scene)
