@@ -155,7 +155,10 @@ public sealed class TopDownMapGenerator : MonoBehaviour
         // Existing maps from earlier versions receive the interior once, without
         // replacing the player's already placed scene objects or perimeter walls.
         if (map.Find("Interior") == null)
+        {
             AddInteriorToMap(map);
+            EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        }
     }
 
     [ContextMenu("Создать или пересоздать статическую карту")]
@@ -356,9 +359,9 @@ public sealed class TopDownMapGenerator : MonoBehaviour
             new Color(0.43f, 0.31f, 0.19f, 1f));
 
         CreateWorkbench(interiorRoot.transform, sprite, "Workbench_West",
-            new Vector2(-4.0f * scaleX, -0.85f * scaleY), scaleX, scaleY);
+            new Vector2(-4.4f * scaleX, -0.85f * scaleY), scaleX, scaleY);
         CreateWorkbench(interiorRoot.transform, sprite, "Workbench_East",
-            new Vector2(4.0f * scaleX, 0.85f * scaleY), scaleX, scaleY);
+            new Vector2(4.4f * scaleX, 0.85f * scaleY), scaleX, scaleY);
 
         // Additional exterior cover is kept away from the arena edges and the main entry lanes.
         CreateCrate(interiorRoot.transform, sprite, "Exterior_Cover_North_West",
